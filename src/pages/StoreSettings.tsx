@@ -17,7 +17,7 @@ export const StoreSettings: React.FC = () => {
   const [settings, setSettings] = useState<DbStoreSettings>({
     id: 1,
     announcement_text: '⚡ UPDATE BRO® — Power Your World • Free Shipping on Orders Above ₹499',
-    whatsapp_number: '+919876543210',
+    whatsapp_number: '',
     shipping_charge: 49,
     free_shipping_above: 499,
     cod_enabled: true,
@@ -179,7 +179,7 @@ export const StoreSettings: React.FC = () => {
               required
               value={settings.whatsapp_number}
               onChange={(e) => setSettings({ ...settings, whatsapp_number: e.target.value })}
-              placeholder="+919876543210"
+              placeholder="+91XXXXXXXXXX"
               className="h-11 w-full rounded-2xl border border-line bg-cloud/30 px-3.5 font-mono text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
             />
             <p className="mt-1 text-[11px] text-muted">

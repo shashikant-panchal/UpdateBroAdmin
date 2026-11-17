@@ -87,7 +87,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
       value: `₹${stats.totalRevenue.toLocaleString('en-IN')}`,
       desc: 'All completed orders',
       icon: IndianRupee,
-      trend: '+18.4% vs last mo',
+      trend: stats.totalOrders > 0 ? `${stats.totalOrders} live orders recorded` : 'Live synchronized',
       color: 'from-amber-500/20 to-orange-500/5 text-accent border-accent/30',
     },
     {
@@ -95,7 +95,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
       value: stats.pendingOrders,
       desc: 'Requiring fulfillment',
       icon: Clock,
-      trend: `${stats.pendingOrders} awaiting dispatch`,
+      trend: stats.pendingOrders > 0 ? `${stats.pendingOrders} awaiting dispatch` : 'All orders fulfilled',
       color: 'from-blue-500/20 to-cyan-500/5 text-blue-500 border-blue-500/30',
     },
     {
@@ -103,15 +103,15 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
       value: stats.totalOrders,
       desc: 'Lifetime store volume',
       icon: ShoppingBag,
-      trend: 'Realtime synchronized',
+      trend: stats.totalOrders > 0 ? 'Realtime synchronized' : 'Awaiting first order',
       color: 'from-emerald-500/20 to-teal-500/5 text-emerald-500 border-emerald-500/30',
     },
     {
       label: 'Catalog Products',
       value: stats.totalProducts,
-      desc: `${stats.outOfStockProducts} currently out of stock`,
+      desc: stats.outOfStockProducts > 0 ? `${stats.outOfStockProducts} currently out of stock` : 'All items in stock',
       icon: Package,
-      trend: 'Active inventory items',
+      trend: `${stats.totalProducts} items in database`,
       color: 'from-purple-500/20 to-indigo-500/5 text-purple-500 border-purple-500/30',
     },
   ];
