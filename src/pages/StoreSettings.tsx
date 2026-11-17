@@ -9,24 +9,26 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
+  Trash2,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbStoreSettings } from '../types/database';
 import { useActionModal } from '../context/ActionModalContext';
 
 export const StoreSettings: React.FC = () => {
-  const { notifySuccess, notifyError } = useActionModal();
+  const { confirm, notifySuccess, notifyError, notifyInfo } = useActionModal();
   const [settings, setSettings] = useState<DbStoreSettings>({
     id: 1,
-    announcement_text: '⚡ UPDATE BRO® — Power Your World • Free Shipping on Orders Above ₹499',
+    announcement_text: '',
     whatsapp_number: '',
-    shipping_charge: 49,
-    free_shipping_above: 499,
+    shipping_charge: 0,
+    free_shipping_above: 0,
     cod_enabled: true,
   });
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPurging, setIsPurging] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -100,6 +102,38 @@ export const StoreSettings: React.FC = () => {
     }
   };
 
+  const handlePurgeAllDemoData = async () => {
+    const confirmed = await confirm({
+      title: 'Wipe All Demo & Sample Data?',
+      message:
+        'This will permanently delete all demo products, categories, hero banners, and sample orders so you can start with a 100% clean store. This action cannot be undone.',
+      confirmText: 'Yes, Wipe Everything',
+      cancelText: 'Keep Data',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
+
+    try {
+      setIsPurging(true);
+      await supabase.from('order_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('products').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('categories').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('banners').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+      notifySuccess(
+        'Catalog Cleared!',
+        'All demo data wiped. Your store is now completely fresh for real products.'
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to clear data';
+      notifyError('Purge Failed', msg);
+    } finally {
+      setIsPurging(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
@@ -162,7 +196,7 @@ export const StoreSettings: React.FC = () => {
               required
               value={settings.announcement_text}
               onChange={(e) => setSettings({ ...settings, announcement_text: e.target.value })}
-              placeholder="e.g. ⚡ UPDATE BRO® — Power Your World • Free Shipping on Orders Above ₹499"
+              placeholder="Enter marquee announcement text..."
               className="h-11 w-full rounded-2xl border border-line bg-cloud/30 px-3.5 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
             />
             <p className="mt-1 text-[11px] text-muted">
@@ -281,6 +315,32 @@ export const StoreSettings: React.FC = () => {
           </button>
         </div>
       </form>
+
+      {/* Danger Zone: Purge All Demo Data */}
+      <div className="rounded-3xl border border-red-500/30 bg-red-500/5 p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-red-500">
+              <Trash2 className="h-4 w-4" />
+              <h3 className="font-display text-sm font-bold uppercase tracking-wider">
+                Reset / Purge Demo Catalog
+              </h3>
+            </div>
+            <p className="mt-1 text-xs text-muted">
+              Permanently remove all sample products, categories, hero banners, and test orders. Keeps your database 100% clean for your real products.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handlePurgeAllDemoData}
+            disabled={isPurging}
+            className="rounded-2xl border border-red-500/40 bg-red-500/10 px-5 py-2.5 text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition active:scale-95 disabled:opacity-50 shrink-0 self-start sm:self-center"
+          >
+            {isPurging ? 'Purging...' : 'Wipe All Demo Data'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

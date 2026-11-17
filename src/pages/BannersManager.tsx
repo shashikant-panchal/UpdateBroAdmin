@@ -25,8 +25,8 @@ export const BannersManager: React.FC = () => {
   // Form Fields
   const [formTitle, setFormTitle] = useState('');
   const [formSubtitle, setFormSubtitle] = useState('');
-  const [formCtaText, setFormCtaText] = useState('Shop Now');
-  const [formCtaLink, setFormCtaLink] = useState('/shop');
+  const [formCtaText, setFormCtaText] = useState('');
+  const [formCtaLink, setFormCtaLink] = useState('');
   const [formImages, setFormImages] = useState<string[]>([]);
   const [formSortOrder, setFormSortOrder] = useState(0);
   const [formIsActive, setFormIsActive] = useState(true);
@@ -64,8 +64,8 @@ export const BannersManager: React.FC = () => {
     setEditingBanner(null);
     setFormTitle('');
     setFormSubtitle('');
-    setFormCtaText('Shop Now');
-    setFormCtaLink('/shop');
+    setFormCtaText('');
+    setFormCtaLink('');
     setFormImages([]);
     setFormSortOrder(banners.length + 1);
     setFormIsActive(true);
@@ -312,7 +312,7 @@ export const BannersManager: React.FC = () => {
                     required
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
-                    placeholder="e.g. Next-Gen Audio & GaN Fast Charging"
+                    placeholder="Enter banner title..."
                     className="h-10 w-full rounded-2xl border border-line bg-cloud/30 px-3 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                   />
                 </div>
@@ -325,7 +325,7 @@ export const BannersManager: React.FC = () => {
                     type="text"
                     value={formSubtitle}
                     onChange={(e) => setFormSubtitle(e.target.value)}
-                    placeholder="e.g. Engineered for high performance & durability."
+                    placeholder="Enter banner subtitle (optional)..."
                     className="h-10 w-full rounded-2xl border border-line bg-cloud/30 px-3 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                   />
                 </div>
@@ -339,8 +339,8 @@ export const BannersManager: React.FC = () => {
                       type="text"
                       value={formCtaText}
                       onChange={(e) => setFormCtaText(e.target.value)}
-                      placeholder="Shop Now"
-                      className="h-10 w-full rounded-2xl border border-line bg-cloud/30 px-3 text-xs text-ink focus:border-accent focus:outline-none"
+                      placeholder="Button label..."
+                      className="h-10 w-full rounded-2xl border border-line bg-cloud/30 px-3 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                     />
                   </div>
 
@@ -352,8 +352,8 @@ export const BannersManager: React.FC = () => {
                       type="text"
                       value={formCtaLink}
                       onChange={(e) => setFormCtaLink(e.target.value)}
-                      placeholder="/shop or /category/tws"
-                      className="h-10 w-full rounded-2xl border border-line bg-cloud/30 px-3 font-mono text-xs text-ink focus:border-accent focus:outline-none"
+                      placeholder="/shop or URL..."
+                      className="h-10 w-full rounded-2xl border border-line bg-cloud/30 px-3 font-mono text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                     />
                   </div>
                 </div>

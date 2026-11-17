@@ -85,33 +85,38 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
     {
       label: 'Total Revenue',
       value: `₹${stats.totalRevenue.toLocaleString('en-IN')}`,
-      desc: 'All completed orders',
+      desc: stats.totalOrders > 0 ? 'All completed orders' : 'No sales recorded yet',
       icon: IndianRupee,
-      trend: stats.totalOrders > 0 ? `${stats.totalOrders} live orders recorded` : 'Live synchronized',
+      trend: stats.totalOrders > 0 ? `${stats.totalOrders} live orders` : 'Realtime ready',
       color: 'from-amber-500/20 to-orange-500/5 text-accent border-accent/30',
     },
     {
       label: 'Active / Pending Orders',
       value: stats.pendingOrders,
-      desc: 'Requiring fulfillment',
+      desc: stats.pendingOrders > 0 ? 'Requiring fulfillment' : 'No pending orders',
       icon: Clock,
-      trend: stats.pendingOrders > 0 ? `${stats.pendingOrders} awaiting dispatch` : 'All orders fulfilled',
+      trend: stats.pendingOrders > 0 ? `${stats.pendingOrders} awaiting dispatch` : 'All orders clear',
       color: 'from-blue-500/20 to-cyan-500/5 text-blue-500 border-blue-500/30',
     },
     {
       label: 'Total Orders',
       value: stats.totalOrders,
-      desc: 'Lifetime store volume',
+      desc: stats.totalOrders > 0 ? 'Lifetime store volume' : 'Awaiting first order',
       icon: ShoppingBag,
-      trend: stats.totalOrders > 0 ? 'Realtime synchronized' : 'Awaiting first order',
+      trend: stats.totalOrders > 0 ? 'Realtime synchronized' : 'No orders placed yet',
       color: 'from-emerald-500/20 to-teal-500/5 text-emerald-500 border-emerald-500/30',
     },
     {
       label: 'Catalog Products',
       value: stats.totalProducts,
-      desc: stats.outOfStockProducts > 0 ? `${stats.outOfStockProducts} currently out of stock` : 'All items in stock',
+      desc:
+        stats.totalProducts === 0
+          ? 'No products in catalog'
+          : stats.outOfStockProducts > 0
+          ? `${stats.outOfStockProducts} currently out of stock`
+          : 'All items in stock',
       icon: Package,
-      trend: `${stats.totalProducts} items in database`,
+      trend: stats.totalProducts === 0 ? 'Ready for new products' : `${stats.totalProducts} live items`,
       color: 'from-purple-500/20 to-indigo-500/5 text-purple-500 border-purple-500/30',
     },
   ];
@@ -250,7 +255,13 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
               <h3 className="font-display text-sm font-bold text-ink">Stock Alerts</h3>
             </div>
 
-            {lowStockProducts.length === 0 ? (
+            {stats.totalProducts === 0 ? (
+              <div className="rounded-2xl border border-line bg-cloud/20 p-4 text-center">
+                <Package className="mx-auto h-6 w-6 text-muted mb-1" />
+                <p className="text-xs font-bold text-ink">Catalog is empty</p>
+                <p className="text-[11px] text-muted mt-0.5">Add products to track stock health.</p>
+              </div>
+            ) : lowStockProducts.length === 0 ? (
               <div className="rounded-2xl border border-green-500/20 bg-green-500/5 p-4 text-center">
                 <CheckCircle2 className="mx-auto h-6 w-6 text-green-500 mb-1" />
                 <p className="text-xs font-bold text-green-600">All products in stock</p>

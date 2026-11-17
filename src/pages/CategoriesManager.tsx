@@ -316,7 +316,7 @@ export const CategoriesManager: React.FC = () => {
                     required
                     value={formName}
                     onChange={(e) => handleNameChange(e.target.value)}
-                    placeholder="e.g. BNC Video Cables"
+                    placeholder="Enter category name..."
                     className="h-10 w-full rounded-2xl border border-line bg-cloud/30 px-3 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                   />
                 </div>
@@ -330,7 +330,7 @@ export const CategoriesManager: React.FC = () => {
                     required
                     value={formSlug}
                     onChange={(e) => setFormSlug(e.target.value)}
-                    placeholder="e.g. bnc"
+                    placeholder="category-slug"
                     className="h-10 w-full rounded-2xl border border-line bg-cloud/30 px-3 font-mono text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                   />
                 </div>

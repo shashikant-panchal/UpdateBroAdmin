@@ -519,7 +519,7 @@ export const OrdersManager: React.FC = () => {
                         type="text"
                         value={trackingNoteInput}
                         onChange={(e) => setTrackingNoteInput(e.target.value)}
-                        placeholder={selectedOrder.tracking_note || 'e.g. BlueDart AWB #981247'}
+                        placeholder={selectedOrder.tracking_note || 'Enter tracking number or courier note...'}
                         className="h-9 flex-1 rounded-xl border border-line bg-surface px-3 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                       />
                       <button

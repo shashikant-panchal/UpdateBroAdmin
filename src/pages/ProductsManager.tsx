@@ -492,7 +492,7 @@ export const ProductsManager: React.FC = () => {
                     required
                     value={formName}
                     onChange={(e) => handleNameChange(e.target.value)}
-                    placeholder="e.g. UpdateBro Wave ANC TWS Earbuds"
+                    placeholder="Enter product title..."
                     className="h-11 w-full rounded-2xl border border-line bg-cloud/30 px-3.5 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                   />
                 </div>
@@ -506,7 +506,7 @@ export const ProductsManager: React.FC = () => {
                     required
                     value={formSlug}
                     onChange={(e) => setFormSlug(e.target.value)}
-                    placeholder="e.g. wave-anc-tws-earbuds"
+                    placeholder="product-slug"
                     className="h-10 w-full rounded-2xl border border-line bg-cloud/30 px-3.5 font-mono text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                   />
                 </div>
