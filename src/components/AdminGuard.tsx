@@ -65,23 +65,22 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="w-full max-w-md overflow-hidden rounded-3xl border border-line bg-surface p-7 sm:p-8 shadow-2xl"
       >
-        {/* Top Official Logo Emblem & Branding */}
+        {/* Top Typography Branding */}
         <div className="text-center">
-          <div className="mx-auto flex justify-center mb-3">
-            <div className="relative overflow-hidden rounded-2xl border-2 border-accent/40 shadow-glow p-1 bg-surface">
-              <img
-                src="/assets/ub-logo-official.jpg"
-                alt="UPDATE BRO®"
-                className="h-16 w-16 rounded-xl object-cover"
-              />
+          <div className="flex flex-col items-center">
+            <h1 className="font-display text-2xl sm:text-3xl font-black text-ink tracking-tight">
+              UPDATE BRO<span className="text-accent">®</span>
+            </h1>
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="h-[1px] w-4 bg-accent/60" />
+              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-accent">
+                Power Your World
+              </span>
+              <span className="h-[1px] w-4 bg-accent/60" />
             </div>
           </div>
 
-          <div className="mt-1 flex flex-col items-center">
-            <BrandLogo variant="horizontal" className="text-ink" />
-          </div>
-
-          <h2 className="mt-2 text-xs font-bold uppercase tracking-wider text-accent">
+          <h2 className="mt-4 text-xs font-bold uppercase tracking-wider text-muted">
             Master Admin Portal
           </h2>
 

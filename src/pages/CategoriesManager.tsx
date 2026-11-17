@@ -201,12 +201,16 @@ export const CategoriesManager: React.FC = () => {
               className="rounded-3xl border border-line bg-surface p-5 shadow-sm space-y-4 hover:border-accent/40 transition"
             >
               <div className="flex items-center gap-3.5">
-                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-line bg-cloud">
-                  <img
-                    src={cat.image_url || '/assets/ub-logo-official.jpg'}
-                    alt={cat.name}
-                    className="h-full w-full object-cover"
-                  />
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-line bg-cloud flex items-center justify-center">
+                  {cat.image_url ? (
+                    <img
+                      src={cat.image_url}
+                      alt={cat.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Layers className="h-6 w-6 text-muted" />
+                  )}
                 </div>
                 <div className="truncate">
                   <div className="flex items-center gap-2">

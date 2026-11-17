@@ -329,12 +329,16 @@ export const ProductsManager: React.FC = () => {
                     <tr key={p.id} className="hover:bg-cloud/30 transition">
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-line bg-cloud">
-                            <img
-                              src={p.images?.[0] || '/assets/ub-logo-official.jpg'}
-                              alt={p.name}
-                              className="h-full w-full object-cover"
-                            />
+                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-line bg-cloud flex items-center justify-center">
+                            {p.images?.[0] ? (
+                              <img
+                                src={p.images[0]}
+                                alt={p.name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <Package className="h-6 w-6 text-muted" />
+                            )}
                           </div>
                           <div className="truncate max-w-xs">
                             <p className="font-bold text-ink truncate">{p.name}</p>

@@ -6,8 +6,7 @@ export type BrandLogoVariant =
   | 'horizontal'
   | 'monogram'
   | 'monogramReg'
-  | 'wordmark'
-  | 'official';
+  | 'wordmark';
 
 interface BrandLogoProps {
   variant?: BrandLogoVariant;
@@ -18,8 +17,8 @@ interface BrandLogoProps {
 }
 
 /**
- * UPDATE BRO® Official Brand Logo
- * Precision Geometric Monogram, Extended Wordmark, Official Emblem, and "Power Your World" tagline.
+ * UPDATE BRO® Brand Typography
+ * Precision Geometric Monogram, Extended Wordmark, and "Power Your World" tagline.
  */
 export const BrandLogo: React.FC<BrandLogoProps> = ({
   variant = 'horizontal',
@@ -28,18 +27,6 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   showSubtitle = true,
   ariaLabel = 'UPDATE BRO® — Power Your World',
 }) => {
-  if (variant === 'official') {
-    return (
-      <div className={`relative inline-block overflow-hidden rounded-xl ${className}`}>
-        <img
-          src="/assets/ub-logo-official.jpg"
-          alt={ariaLabel}
-          className="h-full w-auto object-contain"
-        />
-      </div>
-    );
-  }
-
   if (variant === 'monogram') {
     return (
       <svg

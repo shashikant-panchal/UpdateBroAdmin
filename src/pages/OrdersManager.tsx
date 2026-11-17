@@ -12,6 +12,7 @@ import {
   BellRing,
   MapPin,
   RefreshCw,
+  Package,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbOrder, DbOrderItem, OrderStatus } from '../types/database';
@@ -555,12 +556,16 @@ export const OrdersManager: React.FC = () => {
                         className="flex items-center justify-between rounded-2xl border border-line bg-cloud/20 p-3"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-line bg-surface">
-                            <img
-                              src={item.product_image || '/assets/ub-logo-official.jpg'}
-                              alt={item.product_name}
-                              className="h-full w-full object-cover"
-                            />
+                          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-line bg-surface flex items-center justify-center">
+                            {item.product_image ? (
+                              <img
+                                src={item.product_image}
+                                alt={item.product_name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <Package className="h-5 w-5 text-muted" />
+                            )}
                           </div>
                           <div>
                             <p className="text-xs font-bold text-ink">{item.product_name}</p>

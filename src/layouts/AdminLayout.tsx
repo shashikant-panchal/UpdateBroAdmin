@@ -84,9 +84,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     <div className="min-h-screen bg-canvas text-ink flex flex-col lg:flex-row transition-colors duration-200">
       {/* Mobile Top Header */}
       <header className="lg:hidden flex items-center justify-between border-b border-line bg-surface/95 px-4 py-3 backdrop-blur-md sticky top-0 z-40">
-        <div className="flex items-center gap-2.5">
-          <BrandLogo variant="official" className="h-8 w-8 shrink-0 rounded-lg overflow-hidden border border-line" />
-          <span className="font-display font-black text-sm text-ink">UB ADMIN</span>
+        <div className="flex flex-col leading-tight">
+          <span className="font-display font-black text-sm text-ink tracking-tight">UPDATE BRO<span className="text-accent">®</span></span>
+          <span className="text-[9px] font-black uppercase text-accent tracking-widest mt-0.5">
+            Power Your World
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -116,18 +118,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         }`}
       >
         <div className="flex items-center justify-between border-b border-line p-4 sm:p-5">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <BrandLogo
-              variant="official"
-              className="h-9 w-9 shrink-0 rounded-xl overflow-hidden border border-line shadow-sm"
-            />
+          <div className="flex flex-col leading-tight overflow-hidden">
+            <span className="font-display font-black text-base text-ink tracking-tight truncate">
+              {isSidebarCollapsed ? 'UB' : 'UPDATE BRO®'}
+            </span>
             {!isSidebarCollapsed && (
-              <div className="flex flex-col leading-none">
-                <span className="font-display font-black text-sm text-ink tracking-tight">UPDATE BRO®</span>
-                <span className="text-[10px] font-black uppercase text-accent mt-0.5 tracking-wider">
-                  Admin Portal
-                </span>
-              </div>
+              <span className="text-[9px] font-black uppercase text-accent mt-0.5 tracking-wider">
+                Power Your World
+              </span>
             )}
           </div>
           <button
@@ -252,17 +250,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               className="h-full w-72 bg-surface p-5 flex flex-col border-r border-line shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-line pb-4">
-                <div className="flex items-center gap-2.5">
-                  <BrandLogo
-                    variant="official"
-                    className="h-8 w-8 shrink-0 rounded-lg overflow-hidden border border-line"
-                  />
-                  <div className="flex flex-col leading-none">
-                    <span className="font-display font-black text-sm text-ink">UPDATE BRO®</span>
-                    <span className="text-[9px] font-black uppercase text-accent mt-0.5 tracking-wider">
-                      Admin Portal
-                    </span>
-                  </div>
+                <div className="flex flex-col leading-tight">
+                  <span className="font-display font-black text-base text-ink tracking-tight">UPDATE BRO®</span>
+                  <span className="text-[9px] font-black uppercase text-accent mt-0.5 tracking-wider">
+                    Power Your World
+                  </span>
                 </div>
                 <button
                   type="button"
