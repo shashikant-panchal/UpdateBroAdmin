@@ -3,13 +3,19 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbProfile } from '../types/database';
 
+export const ADMIN_EMAIL = 'admin@updatebro.in';
+export const ADMIN_PASSWORD = 'updatebroAdmin@123';
+
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
   profile: DbProfile | null;
   isLoading: boolean;
   isAdmin: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithCredentials: (
+    email: string,
+    pass: string
+  ) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -21,6 +27,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<DbProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const setLocalAdminState = () => {
+    const adminUser = {
+      id: 'admin-master',
+      app_metadata: {},
+      user_metadata: { role: 'admin' },
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+      email: ADMIN_EMAIL,
+    } as unknown as User;
+
+    const adminProfile: DbProfile = {
+      id: 'admin-master',
+      full_name: 'UpdateBro Admin',
+      email: ADMIN_EMAIL,
+      phone: null,
+      shipping_address: null,
+      role: 'admin',
+      created_at: new Date().toISOString(),
+    };
+
+    setUser(adminUser);
+    setProfile(adminProfile);
+  };
 
   const fetchProfile = async (currentUserId: string) => {
     if (!isSupabaseConfigured) {
@@ -46,54 +76,135 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // 1. Check local session storage first
+    const hasLocalAuth = sessionStorage.getItem('ub_admin_auth') === 'true';
+    if (hasLocalAuth) {
+      setLocalAdminState();
+    }
+
     if (!isSupabaseConfigured) {
       setIsLoading(false);
       return;
     }
 
+    // 2. Check Supabase session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
+      if (session) {
+        setSession(session);
+        setUser(session.user);
         fetchProfile(session.user.id);
+      } else if (!hasLocalAuth) {
+        setUser(null);
+        setProfile(null);
+        setIsLoading(false);
       } else {
         setIsLoading(false);
       }
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      if (newSession?.user) {
-        fetchProfile(newSession.user.id);
-      } else {
-        setProfile(null);
-        setIsLoading(false);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (_event, newSession) => {
+        if (newSession) {
+          setSession(newSession);
+          setUser(newSession.user);
+          fetchProfile(newSession.user.id);
+        } else if (sessionStorage.getItem('ub_admin_auth') === 'true') {
+          setLocalAdminState();
+          setIsLoading(false);
+        } else {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setIsLoading(false);
+        }
       }
-    });
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
 
-  const signInWithGoogle = async () => {
-    if (!isSupabaseConfigured) {
-      alert('Supabase is not configured yet. Check .env.local');
-      return;
+  const signInWithCredentials = async (
+    email: string,
+    pass: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPass = pass.trim();
+
+    if (trimmedEmail !== ADMIN_EMAIL.toLowerCase() || trimmedPass !== ADMIN_PASSWORD) {
+      return {
+        success: false,
+        error: 'Invalid administrator email or password.',
+      };
     }
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-    if (error) throw error;
+
+    // Mark verified in session storage immediately
+    sessionStorage.setItem('ub_admin_auth', 'true');
+    setLocalAdminState();
+
+    // If Supabase is configured, attempt authentication / auto-bootstrap
+    if (isSupabaseConfigured) {
+      try {
+        const { data: signInData, error: signInErr } =
+          await supabase.auth.signInWithPassword({
+            email: ADMIN_EMAIL,
+            password: ADMIN_PASSWORD,
+          });
+
+        if (!signInErr && signInData.session) {
+          setSession(signInData.session);
+          setUser(signInData.session.user);
+          // Ensure profile role is admin
+          await supabase
+            .from('profiles')
+            .upsert({
+              id: signInData.session.user.id,
+              email: ADMIN_EMAIL,
+              role: 'admin',
+              full_name: 'UpdateBro Admin',
+            });
+          await fetchProfile(signInData.session.user.id);
+        } else if (signInErr) {
+          // If user doesn't exist yet in Supabase, auto-register once
+          const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+            email: ADMIN_EMAIL,
+            password: ADMIN_PASSWORD,
+            options: {
+              data: {
+                full_name: 'UpdateBro Admin',
+                role: 'admin',
+              },
+            },
+          });
+
+          if (!signUpErr && signUpData.user) {
+            await supabase
+              .from('profiles')
+              .upsert({
+                id: signUpData.user.id,
+                email: ADMIN_EMAIL,
+                role: 'admin',
+                full_name: 'UpdateBro Admin',
+              });
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase credential sync notice:', err);
+      }
+    }
+
+    return { success: true };
   };
 
   const signOut = async () => {
+    sessionStorage.removeItem('ub_admin_auth');
     if (isSupabaseConfigured) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.warn('Signout error:', err);
+      }
     }
     setSession(null);
     setUser(null);
@@ -101,12 +212,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshProfile = async () => {
-    if (user) {
+    if (user && user.id !== 'admin-master') {
       await fetchProfile(user.id);
     }
   };
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin =
+    sessionStorage.getItem('ub_admin_auth') === 'true' ||
+    profile?.role === 'admin' ||
+    user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   return (
     <AuthContext.Provider
@@ -116,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profile,
         isLoading,
         isAdmin,
-        signInWithGoogle,
+        signInWithCredentials,
         signOut,
         refreshProfile,
       }}
