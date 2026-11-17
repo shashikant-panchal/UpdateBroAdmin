@@ -65,8 +65,12 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="w-full max-w-md overflow-hidden rounded-3xl border border-line bg-surface p-7 sm:p-8 shadow-2xl"
       >
-        {/* Top Typography Branding */}
+        {/* Top UB Monogram Emblem & Branding */}
         <div className="text-center">
+          <div className="mx-auto mb-3.5 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/15 p-3 text-accent shadow-glow border border-accent/25">
+            <BrandLogo variant="monogramReg" className="h-full w-auto text-accent" />
+          </div>
+
           <div className="flex flex-col items-center">
             <h1 className="font-display text-2xl sm:text-3xl font-black text-ink tracking-tight">
               UPDATE BRO<span className="text-accent">®</span>
