@@ -25,8 +25,7 @@ set
 
 -- 4. Auto-confirm admin email so login & RLS works seamlessly without email confirmation hurdles
 update auth.users
-set email_confirmed_at = coalesce(email_confirmed_at, now()),
-    confirmed_at = coalesce(confirmed_at, now())
+set email_confirmed_at = coalesce(email_confirmed_at, now())
 where lower(email) = 'admin@updatebro.in';
 
 -- 5. Ensure profile is assigned the admin role
