@@ -84,8 +84,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     <div className="min-h-screen bg-canvas text-ink flex flex-col lg:flex-row transition-colors duration-200">
       {/* Mobile Top Header */}
       <header className="lg:hidden flex items-center justify-between border-b border-line bg-surface/95 px-4 py-3 backdrop-blur-md sticky top-0 z-40">
-        <div className="flex items-center gap-2">
-          <BrandLogo className="h-6 w-6 text-accent" />
+        <div className="flex items-center gap-2.5">
+          <BrandLogo variant="official" className="h-8 w-8 shrink-0 rounded-lg overflow-hidden border border-line" />
           <span className="font-display font-black text-sm text-ink">UB ADMIN</span>
         </div>
 
@@ -115,12 +115,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           isSidebarCollapsed ? 'w-20' : 'w-64'
         }`}
       >
-        <div className="flex items-center justify-between border-b border-line p-5">
+        <div className="flex items-center justify-between border-b border-line p-4 sm:p-5">
           <div className="flex items-center gap-3 overflow-hidden">
-            <BrandLogo className="h-7 w-7 shrink-0 text-accent" />
+            <BrandLogo
+              variant="official"
+              className="h-9 w-9 shrink-0 rounded-xl overflow-hidden border border-line shadow-sm"
+            />
             {!isSidebarCollapsed && (
               <div className="flex flex-col leading-none">
-                <span className="font-display font-black text-sm text-ink tracking-tight">UPDATE BRO</span>
+                <span className="font-display font-black text-sm text-ink tracking-tight">UPDATE BRO®</span>
                 <span className="text-[10px] font-black uppercase text-accent mt-0.5 tracking-wider">
                   Admin Portal
                 </span>
@@ -249,9 +252,17 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               className="h-full w-72 bg-surface p-5 flex flex-col border-r border-line shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-line pb-4">
-                <div className="flex items-center gap-2">
-                  <BrandLogo className="h-6 w-6 text-accent" />
-                  <span className="font-display font-black text-sm text-ink">UB ADMIN</span>
+                <div className="flex items-center gap-2.5">
+                  <BrandLogo
+                    variant="official"
+                    className="h-8 w-8 shrink-0 rounded-lg overflow-hidden border border-line"
+                  />
+                  <div className="flex flex-col leading-none">
+                    <span className="font-display font-black text-sm text-ink">UPDATE BRO®</span>
+                    <span className="text-[9px] font-black uppercase text-accent mt-0.5 tracking-wider">
+                      Admin Portal
+                    </span>
+                  </div>
                 </div>
                 <button
                   type="button"

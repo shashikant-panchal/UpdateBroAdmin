@@ -65,22 +65,27 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="w-full max-w-md overflow-hidden rounded-3xl border border-line bg-surface p-7 sm:p-8 shadow-2xl"
       >
-        {/* Top Icon & Branding */}
+        {/* Top Official Logo Emblem & Branding */}
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/15 text-accent shadow-glow">
-            <Lock className="h-7 w-7" />
+          <div className="mx-auto flex justify-center mb-3">
+            <div className="relative overflow-hidden rounded-2xl border-2 border-accent/40 shadow-glow p-1 bg-surface">
+              <img
+                src="/assets/ub-logo-official.jpg"
+                alt="UPDATE BRO®"
+                className="h-16 w-16 rounded-xl object-cover"
+              />
+            </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <BrandLogo variant="monogram" className="h-5 w-5 text-accent" />
-            <span className="font-display text-xl font-black text-ink">UPDATE BRO®</span>
+          <div className="mt-1 flex flex-col items-center">
+            <BrandLogo variant="horizontal" className="text-ink" />
           </div>
 
-          <h2 className="mt-1 text-xs font-bold uppercase tracking-wider text-accent">
+          <h2 className="mt-2 text-xs font-bold uppercase tracking-wider text-accent">
             Master Admin Portal
           </h2>
 
-          <p className="mt-2 text-xs text-muted leading-relaxed">
+          <p className="mt-1.5 text-xs text-muted leading-relaxed">
             Enter authorized administrator credentials to manage live catalog, orders, and store settings.
           </p>
         </div>
