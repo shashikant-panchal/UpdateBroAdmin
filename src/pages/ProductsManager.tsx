@@ -14,8 +14,10 @@ import {
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbCategory, DbProduct } from '../types/database';
 import { CloudinaryUploader } from '../components/CloudinaryUploader';
+import { useActionModal } from '../context/ActionModalContext';
 
 export const ProductsManager: React.FC = () => {
+  const { confirm, notifySuccess, notifyError, notifyInfo } = useActionModal();
   const [products, setProducts] = useState<DbProduct[]>([]);
   const [categories, setCategories] = useState<DbCategory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -164,15 +166,19 @@ export const ProductsManager: React.FC = () => {
           .eq('id', editingProduct.id);
 
         if (error) throw error;
+        notifySuccess('Product Updated!', `"${payload.name}" was updated successfully.`);
       } else {
         const { error } = await supabase.from('products').insert(payload);
         if (error) throw error;
+        notifySuccess('Product Created!', `"${payload.name}" is now live in store.`);
       }
 
       setIsModalOpen(false);
       fetchData();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to save product');
+      const msg = err instanceof Error ? err.message : 'Failed to save product';
+      setErrorMsg(msg);
+      notifyError('Failed to Save', msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -189,10 +195,16 @@ export const ProductsManager: React.FC = () => {
         .from('products')
         .update({ in_stock: newStock })
         .eq('id', product.id);
+
+      notifyInfo(
+        newStock ? 'Marked In Stock' : 'Marked Out of Stock',
+        `"${product.name}" inventory status updated.`
+      );
     } catch {
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, in_stock: product.in_stock } : p))
       );
+      notifyError('Update Failed', 'Could not update inventory status.');
     }
   };
 
@@ -207,25 +219,40 @@ export const ProductsManager: React.FC = () => {
         .from('products')
         .update({ is_featured: newFeatured })
         .eq('id', product.id);
+
+      notifyInfo(
+        newFeatured ? 'Featured on Storefront' : 'Removed from Featured',
+        `"${product.name}" showcase preference saved.`
+      );
     } catch {
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, is_featured: product.is_featured } : p))
       );
+      notifyError('Update Failed', 'Could not update featured status.');
     }
   };
 
   const handleDeleteProduct = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+    const confirmed = await confirm({
+      title: 'Delete Product?',
+      message: `Are you sure you want to delete "${name}"? This will permanently remove it from the storefront.`,
+      confirmText: 'Yes, Delete',
+      cancelText: 'Keep Product',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
 
     try {
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (!error) {
         setProducts((prev) => prev.filter((p) => p.id !== id));
+        notifySuccess('Product Deleted', `"${name}" was deleted successfully.`);
       } else {
-        alert(`Delete failed: ${error.message}`);
+        notifyError('Delete Failed', error.message);
       }
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Delete error');
+      notifyError('Delete Error', err instanceof Error ? err.message : 'Delete failed');
     }
   };
 

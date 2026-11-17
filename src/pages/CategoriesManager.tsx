@@ -11,8 +11,10 @@ import {
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbCategory } from '../types/database';
 import { CloudinaryUploader } from '../components/CloudinaryUploader';
+import { useActionModal } from '../context/ActionModalContext';
 
 export const CategoriesManager: React.FC = () => {
+  const { confirm, notifySuccess, notifyError, notifyInfo } = useActionModal();
   const [categories, setCategories] = useState<DbCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -114,33 +116,45 @@ export const CategoriesManager: React.FC = () => {
           .update(payload)
           .eq('id', editingCategory.id);
         if (error) throw error;
+        notifySuccess('Category Updated', `"${payload.name}" updated successfully.`);
       } else {
         const { error } = await supabase.from('categories').insert(payload);
         if (error) throw error;
+        notifySuccess('Category Created', `"${payload.name}" is now available in catalog.`);
       }
 
       setIsModalOpen(false);
       fetchCategories();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Save failed');
+      const msg = err instanceof Error ? err.message : 'Save failed';
+      setErrorMsg(msg);
+      notifyError('Failed to Save', msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete category "${name}"? Products under it will become uncategorized.`))
-      return;
+    const confirmed = await confirm({
+      title: 'Delete Category?',
+      message: `Are you sure you want to delete category "${name}"? Products assigned to it will become uncategorized.`,
+      confirmText: 'Yes, Delete',
+      cancelText: 'Keep Category',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
 
     try {
       const { error } = await supabase.from('categories').delete().eq('id', id);
       if (!error) {
         setCategories((prev) => prev.filter((c) => c.id !== id));
+        notifySuccess('Category Deleted', `"${name}" was deleted successfully.`);
       } else {
-        alert(error.message);
+        notifyError('Delete Failed', error.message);
       }
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Delete failed');
+      notifyError('Delete Error', err instanceof Error ? err.message : 'Delete failed');
     }
   };
 
@@ -152,10 +166,15 @@ export const CategoriesManager: React.FC = () => {
 
     try {
       await supabase.from('categories').update({ is_active: updated }).eq('id', cat.id);
+      notifyInfo(
+        updated ? 'Category Activated' : 'Category Hidden',
+        `"${cat.name}" visibility updated.`
+      );
     } catch {
       setCategories((prev) =>
         prev.map((c) => (c.id === cat.id ? { ...c, is_active: cat.is_active } : c))
       );
+      notifyError('Update Failed', 'Could not update category status.');
     }
   };
 

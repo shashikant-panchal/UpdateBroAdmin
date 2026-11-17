@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbOrder, DbOrderItem, OrderStatus } from '../types/database';
+import { useActionModal } from '../context/ActionModalContext';
 
 interface OrderWithItems extends DbOrder {
   order_items: DbOrderItem[];
@@ -54,6 +55,7 @@ const NEXT_LABELS: Record<OrderStatus, string> = {
 const PAGE_SIZE = 15;
 
 export const OrdersManager: React.FC = () => {
+  const { confirm, notifySuccess, notifyError } = useActionModal();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
@@ -174,11 +176,15 @@ export const OrdersManager: React.FC = () => {
           setSelectedOrder((prev) => (prev ? { ...prev, status: newStatus, tracking_note: data.tracking_note } : null));
         }
         setTrackingNoteInput('');
+        notifySuccess(
+          'Order Updated!',
+          `Order ${data.order_number || ''} status set to "${newStatus}".`
+        );
       } else if (error) {
-        alert(`Status update failed: ${error.message}`);
+        notifyError('Update Failed', error.message);
       }
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Update failed');
+      notifyError('Update Error', err instanceof Error ? err.message : 'Update failed');
     } finally {
       setIsUpdating(false);
     }
@@ -532,8 +538,15 @@ export const OrdersManager: React.FC = () => {
                       <button
                         type="button"
                         disabled={isUpdating}
-                        onClick={() => {
-                          if (confirm(`Cancel order ${selectedOrder.order_number}?`)) {
+                        onClick={async () => {
+                          const confirmed = await confirm({
+                            title: 'Cancel this Order?',
+                            message: `Are you sure you want to cancel order ${selectedOrder.order_number}? The customer's order tracker will update immediately.`,
+                            confirmText: 'Yes, Cancel Order',
+                            cancelText: 'Keep Active',
+                            variant: 'danger',
+                          });
+                          if (confirmed) {
                             handleUpdateStatus(selectedOrder.id, 'Cancelled');
                           }
                         }}

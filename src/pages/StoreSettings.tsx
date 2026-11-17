@@ -12,8 +12,10 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbStoreSettings } from '../types/database';
+import { useActionModal } from '../context/ActionModalContext';
 
 export const StoreSettings: React.FC = () => {
+  const { notifySuccess, notifyError } = useActionModal();
   const [settings, setSettings] = useState<DbStoreSettings>({
     id: 1,
     announcement_text: '⚡ UPDATE BRO® — Power Your World • Free Shipping on Orders Above ₹499',
@@ -59,7 +61,9 @@ export const StoreSettings: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSupabaseConfigured) {
-      setErrorMsg('Supabase not configured in .env.local');
+      const msg = 'Supabase not configured in .env.local';
+      setErrorMsg(msg);
+      notifyError('Configuration Missing', msg);
       return;
     }
 
@@ -82,9 +86,15 @@ export const StoreSettings: React.FC = () => {
       if (error) throw error;
 
       setSuccessMsg('Store settings updated successfully! Live across storefront.');
+      notifySuccess(
+        'Store Settings Saved!',
+        'Global policies, marquee announcement & shipping rules are now live across storefront.'
+      );
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Save failed');
+      const msg = err instanceof Error ? err.message : 'Save failed';
+      setErrorMsg(msg);
+      notifyError('Failed to Save', msg);
     } finally {
       setIsSaving(false);
     }

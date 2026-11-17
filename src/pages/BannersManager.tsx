@@ -11,8 +11,10 @@ import {
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbBanner } from '../types/database';
 import { CloudinaryUploader } from '../components/CloudinaryUploader';
+import { useActionModal } from '../context/ActionModalContext';
 
 export const BannersManager: React.FC = () => {
+  const { confirm, notifySuccess, notifyError, notifyInfo } = useActionModal();
   const [banners, setBanners] = useState<DbBanner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -108,32 +110,45 @@ export const BannersManager: React.FC = () => {
       if (editingBanner) {
         const { error } = await supabase.from('banners').update(payload).eq('id', editingBanner.id);
         if (error) throw error;
+        notifySuccess('Banner Updated', `"${payload.title}" updated successfully.`);
       } else {
         const { error } = await supabase.from('banners').insert(payload);
         if (error) throw error;
+        notifySuccess('Banner Created', `"${payload.title}" is now added to the carousel.`);
       }
 
       setIsModalOpen(false);
       fetchBanners();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Save banner failed');
+      const msg = err instanceof Error ? err.message : 'Save banner failed';
+      setErrorMsg(msg);
+      notifyError('Failed to Save', msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Delete banner "${title}"?`)) return;
+    const confirmed = await confirm({
+      title: 'Delete Hero Banner?',
+      message: `Are you sure you want to delete banner "${title}" from the homepage carousel?`,
+      confirmText: 'Yes, Delete',
+      cancelText: 'Keep Banner',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
 
     try {
       const { error } = await supabase.from('banners').delete().eq('id', id);
       if (!error) {
         setBanners((prev) => prev.filter((b) => b.id !== id));
+        notifySuccess('Banner Deleted', `"${title}" was removed.`);
       } else {
-        alert(error.message);
+        notifyError('Delete Failed', error.message);
       }
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Delete failed');
+      notifyError('Delete Error', err instanceof Error ? err.message : 'Delete failed');
     }
   };
 
@@ -145,10 +160,15 @@ export const BannersManager: React.FC = () => {
 
     try {
       await supabase.from('banners').update({ is_active: updated }).eq('id', b.id);
+      notifyInfo(
+        updated ? 'Banner Visible' : 'Banner Hidden',
+        `"${b.title}" carousel slide updated.`
+      );
     } catch {
       setBanners((prev) =>
         prev.map((item) => (item.id === b.id ? { ...item, is_active: b.is_active } : item))
       );
+      notifyError('Update Failed', 'Could not update banner status.');
     }
   };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ActionModalProvider } from './context/ActionModalContext';
 import { AdminGuard } from './components/AdminGuard';
 import { AdminLayout, type AdminTab } from './layouts/AdminLayout';
 import { DashboardOverview } from './pages/DashboardOverview';
@@ -106,7 +107,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AdminApp />
+        <ActionModalProvider>
+          <AdminApp />
+        </ActionModalProvider>
       </AuthProvider>
     </ThemeProvider>
   );
