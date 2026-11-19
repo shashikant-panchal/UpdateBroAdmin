@@ -353,6 +353,7 @@ export const CategoriesManager: React.FC = () => {
                     onChange={setFormImageUrl}
                     multiple={false}
                     maxFiles={1}
+                    preset="category"
                     label="Category Thumbnail (Cloudinary)"
                   />
                 </div>

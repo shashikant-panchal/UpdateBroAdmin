@@ -577,6 +577,7 @@ export const ProductsManager: React.FC = () => {
                     onChange={setFormImages}
                     multiple={true}
                     maxFiles={6}
+                    preset="product"
                     label="Product Gallery (Cloudinary Optimized)"
                   />
                 </div>

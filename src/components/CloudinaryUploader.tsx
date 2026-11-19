@@ -8,8 +8,10 @@ import {
   ArrowUp,
   ArrowDown,
   Link as LinkIcon,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
-import { uploadToCloudinary } from '../lib/cloudinary';
+import { uploadToCloudinary, formatBytes, type CompressionStats } from '../lib/cloudinary';
 
 interface CloudinaryUploaderProps {
   images: string[];
@@ -17,6 +19,7 @@ interface CloudinaryUploaderProps {
   multiple?: boolean;
   maxFiles?: number;
   label?: string;
+  preset?: 'product' | 'banner' | 'category';
 }
 
 export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
@@ -25,11 +28,13 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
   multiple = true,
   maxFiles = 6,
   label = 'Product Images',
+  preset = 'product',
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [compressionSavings, setCompressionSavings] = useState<string | null>(null);
   const [manualUrl, setManualUrl] = useState('');
   const [showManualInput, setShowManualInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -49,19 +54,47 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
     }
 
     setErrorMsg(null);
+    setCompressionSavings(null);
     setIsUploading(true);
     setUploadProgress(10);
 
     const uploadedUrls: string[] = [];
+    let totalOriginalBytes = 0;
+    let totalCompressedBytes = 0;
+
+    const compressionOptions =
+      preset === 'banner'
+        ? { maxWidth: 1920, maxHeight: 1080, quality: 0.82 }
+        : preset === 'category'
+        ? { maxWidth: 800, maxHeight: 800, quality: 0.80 }
+        : { maxWidth: 1400, maxHeight: 1400, quality: 0.80 };
 
     try {
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
-        const url = await uploadToCloudinary(file, (percent) => {
-          const overall = Math.round(((i + percent / 100) / fileList.length) * 100);
-          setUploadProgress(overall);
-        });
+        const url = await uploadToCloudinary(
+          file,
+          (percent) => {
+            const overall = Math.round(((i + percent / 100) / fileList.length) * 100);
+            setUploadProgress(overall);
+          },
+          compressionOptions,
+          (stats: CompressionStats) => {
+            totalOriginalBytes += stats.originalSize;
+            totalCompressedBytes += stats.compressedSize;
+          }
+        );
         uploadedUrls.push(url);
+      }
+
+      if (totalOriginalBytes > 0) {
+        const savedPercent = Math.max(
+          0,
+          Math.round(((totalOriginalBytes - totalCompressedBytes) / totalOriginalBytes) * 100)
+        );
+        setCompressionSavings(
+          `Compressed ${formatBytes(totalOriginalBytes)} → ${formatBytes(totalCompressedBytes)} (${savedPercent}% saved) for Cloudinary Free Tier`
+        );
       }
 
       if (multiple) {
@@ -201,14 +234,31 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
                 <p className="text-xs font-bold text-ink">
                   Drag &amp; drop images here, or <span className="text-accent underline">browse</span>
                 </p>
-                <p className="mt-1 text-[11px] text-muted">
-                  Auto-compressed client-side • Optimized f_auto,q_auto delivery
-                </p>
+                <div className="mt-1.5 flex items-center justify-center gap-1.5 flex-wrap">
+                  <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+                    ⚡ Canvas WebP Pre-Compression
+                  </span>
+                  <span className="rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-500">
+                    Free Tier Safe
+                  </span>
+                  <span className="text-[10px] text-muted">Auto f_auto,q_auto delivery</span>
+                </div>
               </>
             )}
           </div>
         </div>
       ) : null}
+
+      {compressionSavings && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-2.5 text-xs text-emerald-500 font-bold"
+        >
+          <Sparkles className="h-4 w-4 shrink-0 text-emerald-500" />
+          <span>{compressionSavings}</span>
+        </motion.div>
+      )}
 
       {errorMsg && (
         <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-500">

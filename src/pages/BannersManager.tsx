@@ -377,6 +377,7 @@ export const BannersManager: React.FC = () => {
                     onChange={setFormImages}
                     multiple={false}
                     maxFiles={1}
+                    preset="banner"
                     label="Banner Widescreen Graphic (Cloudinary)"
                   />
                 </div>
