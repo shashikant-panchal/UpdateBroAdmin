@@ -9,9 +9,8 @@ import {
   ArrowDown,
   Link as LinkIcon,
   CheckCircle2,
-  Sparkles,
 } from 'lucide-react';
-import { uploadToCloudinary, formatBytes, type CompressionStats } from '../lib/cloudinary';
+import { uploadToCloudinary } from '../lib/cloudinary';
 
 interface CloudinaryUploaderProps {
   images: string[];
@@ -34,7 +33,7 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [compressionSavings, setCompressionSavings] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
   const [manualUrl, setManualUrl] = useState('');
   const [showManualInput, setShowManualInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,20 +53,18 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
     }
 
     setErrorMsg(null);
-    setCompressionSavings(null);
+    setUploadSuccess(false);
     setIsUploading(true);
     setUploadProgress(10);
 
     const uploadedUrls: string[] = [];
-    let totalOriginalBytes = 0;
-    let totalCompressedBytes = 0;
 
     const compressionOptions =
       preset === 'banner'
         ? { maxWidth: 1920, maxHeight: 1080, quality: 0.82 }
         : preset === 'category'
         ? { maxWidth: 800, maxHeight: 800, quality: 0.80 }
-        : { maxWidth: 1400, maxHeight: 1400, quality: 0.80 };
+        : { maxWidth: 1200, maxHeight: 1200, quality: 0.78 };
 
     try {
       for (let i = 0; i < fileList.length; i++) {
@@ -78,24 +75,13 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
             const overall = Math.round(((i + percent / 100) / fileList.length) * 100);
             setUploadProgress(overall);
           },
-          compressionOptions,
-          (stats: CompressionStats) => {
-            totalOriginalBytes += stats.originalSize;
-            totalCompressedBytes += stats.compressedSize;
-          }
+          compressionOptions
         );
         uploadedUrls.push(url);
       }
 
-      if (totalOriginalBytes > 0) {
-        const savedPercent = Math.max(
-          0,
-          Math.round(((totalOriginalBytes - totalCompressedBytes) / totalOriginalBytes) * 100)
-        );
-        setCompressionSavings(
-          `Compressed ${formatBytes(totalOriginalBytes)} → ${formatBytes(totalCompressedBytes)} (${savedPercent}% saved) for Cloudinary Free Tier`
-        );
-      }
+      setUploadSuccess(true);
+      window.setTimeout(() => setUploadSuccess(false), 3500);
 
       if (multiple) {
         onChange([...images, ...uploadedUrls]);
@@ -178,7 +164,7 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
             type="url"
             value={manualUrl}
             onChange={(e) => setManualUrl(e.target.value)}
-            placeholder="https://res.cloudinary.com/... or image link"
+            placeholder="https://... (direct image link)"
             className="h-9 flex-1 rounded-xl border border-line bg-surface px-3 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
           />
           <button
@@ -217,7 +203,7 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
               <div className="flex flex-col items-center gap-2">
                 <Loader2 className="h-8 w-8 animate-spin text-accent" />
                 <span className="text-xs font-bold text-ink">
-                  Compressing &amp; Uploading ({uploadProgress}%)
+                  Uploading ({uploadProgress}%)
                 </span>
                 <div className="h-1.5 w-48 rounded-full bg-line overflow-hidden">
                   <div
@@ -234,29 +220,23 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
                 <p className="text-xs font-bold text-ink">
                   Drag &amp; drop images here, or <span className="text-accent underline">browse</span>
                 </p>
-                <div className="mt-1.5 flex items-center justify-center gap-1.5 flex-wrap">
-                  <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
-                    ⚡ Canvas WebP Pre-Compression
-                  </span>
-                  <span className="rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-500">
-                    Free Tier Safe
-                  </span>
-                  <span className="text-[10px] text-muted">Auto f_auto,q_auto delivery</span>
-                </div>
+                <p className="mt-1.5 text-[11px] text-muted">
+                  Supports JPG, PNG, WebP • Max 10MB per file
+                </p>
               </>
             )}
           </div>
         </div>
       ) : null}
 
-      {compressionSavings && (
+      {uploadSuccess && (
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-2.5 text-xs text-emerald-500 font-bold"
         >
-          <Sparkles className="h-4 w-4 shrink-0 text-emerald-500" />
-          <span>{compressionSavings}</span>
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+          <span>Image uploaded and saved successfully</span>
         </motion.div>
       )}
 

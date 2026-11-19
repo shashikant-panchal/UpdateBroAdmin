@@ -753,7 +753,7 @@ export const ProductsManager: React.FC = () => {
                     multiple={true}
                     maxFiles={6}
                     preset="product"
-                    label="Product Gallery (Cloudinary Optimized)"
+                    label="Product Photos & Gallery"
                   />
                 </div>
 

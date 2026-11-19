@@ -378,7 +378,7 @@ export const BannersManager: React.FC = () => {
                     multiple={false}
                     maxFiles={1}
                     preset="banner"
-                    label="Banner Widescreen Graphic (Cloudinary)"
+                    label="Banner Widescreen Graphic"
                   />
                 </div>
 

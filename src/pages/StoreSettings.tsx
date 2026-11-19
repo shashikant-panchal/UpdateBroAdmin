@@ -63,7 +63,7 @@ export const StoreSettings: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSupabaseConfigured) {
-      const msg = 'Supabase not configured in .env.local';
+      const msg = 'Database service unavailable. Please try again.';
       setErrorMsg(msg);
       notifyError('Configuration Missing', msg);
       return;

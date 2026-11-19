@@ -354,7 +354,7 @@ export const CategoriesManager: React.FC = () => {
                     multiple={false}
                     maxFiles={1}
                     preset="category"
-                    label="Category Thumbnail (Cloudinary)"
+                    label="Category Thumbnail Image"
                   />
                 </div>
 
