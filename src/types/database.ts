@@ -58,6 +58,9 @@ export interface DbProduct {
   highlights: string[];
   in_stock: boolean;
   is_featured: boolean;
+  is_best_seller: boolean;
+  is_new_arrival: boolean;
+  is_combo: boolean;
   created_at: string;
 }
 

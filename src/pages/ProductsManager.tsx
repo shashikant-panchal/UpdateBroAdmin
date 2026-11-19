@@ -10,11 +10,16 @@ import {
   X,
   Star,
   AlertCircle,
+  Flame,
+  Sparkles,
+  Gift,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbCategory, DbProduct } from '../types/database';
 import { CloudinaryUploader } from '../components/CloudinaryUploader';
 import { useActionModal } from '../context/ActionModalContext';
+
+type ProductTagFilter = 'all' | 'bestseller' | 'newarrival' | 'combo' | 'featured' | 'outofstock';
 
 export const ProductsManager: React.FC = () => {
   const { confirm, notifySuccess, notifyError, notifyInfo } = useActionModal();
@@ -22,6 +27,7 @@ export const ProductsManager: React.FC = () => {
   const [categories, setCategories] = useState<DbCategory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [tagFilter, setTagFilter] = useState<ProductTagFilter>('all');
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,6 +43,9 @@ export const ProductsManager: React.FC = () => {
   const [formHighlights, setFormHighlights] = useState<string[]>(['']);
   const [formInStock, setFormInStock] = useState(true);
   const [formIsFeatured, setFormIsFeatured] = useState(false);
+  const [formIsBestSeller, setFormIsBestSeller] = useState(false);
+  const [formIsNewArrival, setFormIsNewArrival] = useState(false);
+  const [formIsCombo, setFormIsCombo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -52,7 +61,7 @@ export const ProductsManager: React.FC = () => {
       const [prodsRes, catsRes] = await Promise.all([
         supabase
           .from('products')
-          .select('id, name, slug, description, price, compare_at_price, category_id, images, highlights, in_stock, is_featured, created_at')
+          .select('id, name, slug, description, price, compare_at_price, category_id, images, highlights, in_stock, is_featured, is_best_seller, is_new_arrival, is_combo, created_at')
           .order('created_at', { ascending: false }),
 
         supabase
@@ -90,6 +99,9 @@ export const ProductsManager: React.FC = () => {
     setFormHighlights(['']);
     setFormInStock(true);
     setFormIsFeatured(false);
+    setFormIsBestSeller(false);
+    setFormIsNewArrival(false);
+    setFormIsCombo(false);
     setErrorMsg(null);
     setIsModalOpen(true);
   };
@@ -105,7 +117,10 @@ export const ProductsManager: React.FC = () => {
     setFormImages(p.images || []);
     setFormHighlights(p.highlights && p.highlights.length > 0 ? p.highlights : ['']);
     setFormInStock(p.in_stock);
-    setFormIsFeatured(p.is_featured);
+    setFormIsFeatured(p.is_featured ?? false);
+    setFormIsBestSeller(p.is_best_seller ?? false);
+    setFormIsNewArrival(p.is_new_arrival ?? false);
+    setFormIsCombo(p.is_combo ?? false);
     setErrorMsg(null);
     setIsModalOpen(true);
   };
@@ -157,6 +172,9 @@ export const ProductsManager: React.FC = () => {
         highlights: formHighlights.filter((h) => h.trim() !== ''),
         in_stock: formInStock,
         is_featured: formIsFeatured,
+        is_best_seller: formIsBestSeller,
+        is_new_arrival: formIsNewArrival,
+        is_combo: formIsCombo,
       };
 
       if (editingProduct) {
@@ -232,6 +250,78 @@ export const ProductsManager: React.FC = () => {
     }
   };
 
+  const handleToggleBestSeller = async (product: DbProduct) => {
+    const newVal = !product.is_best_seller;
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, is_best_seller: newVal } : p))
+    );
+
+    try {
+      await supabase
+        .from('products')
+        .update({ is_best_seller: newVal })
+        .eq('id', product.id);
+
+      notifyInfo(
+        newVal ? 'Tagged as Best Seller' : 'Removed from Best Sellers',
+        `"${product.name}" widget tag updated.`
+      );
+    } catch {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, is_best_seller: product.is_best_seller } : p))
+      );
+      notifyError('Update Failed', 'Could not update Best Seller tag.');
+    }
+  };
+
+  const handleToggleNewArrival = async (product: DbProduct) => {
+    const newVal = !product.is_new_arrival;
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, is_new_arrival: newVal } : p))
+    );
+
+    try {
+      await supabase
+        .from('products')
+        .update({ is_new_arrival: newVal })
+        .eq('id', product.id);
+
+      notifyInfo(
+        newVal ? 'Tagged as New Arrival' : 'Removed from New Arrivals',
+        `"${product.name}" widget tag updated.`
+      );
+    } catch {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, is_new_arrival: product.is_new_arrival } : p))
+      );
+      notifyError('Update Failed', 'Could not update New Arrival tag.');
+    }
+  };
+
+  const handleToggleCombo = async (product: DbProduct) => {
+    const newVal = !product.is_combo;
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, is_combo: newVal } : p))
+    );
+
+    try {
+      await supabase
+        .from('products')
+        .update({ is_combo: newVal })
+        .eq('id', product.id);
+
+      notifyInfo(
+        newVal ? 'Tagged as Power Combo' : 'Removed from Combos',
+        `"${product.name}" combo widget status updated.`
+      );
+    } catch {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, is_combo: product.is_combo } : p))
+      );
+      notifyError('Update Failed', 'Could not update Combo tag.');
+    }
+  };
+
   const handleDeleteProduct = async (id: string, name: string) => {
     const confirmed = await confirm({
       title: 'Delete Product?',
@@ -264,7 +354,15 @@ export const ProductsManager: React.FC = () => {
 
     const matchesCat = selectedCategory === 'all' || p.category_id === selectedCategory;
 
-    return matchesSearch && matchesCat;
+    const matchesTag =
+      tagFilter === 'all' ||
+      (tagFilter === 'bestseller' && p.is_best_seller) ||
+      (tagFilter === 'newarrival' && p.is_new_arrival) ||
+      (tagFilter === 'combo' && p.is_combo) ||
+      (tagFilter === 'featured' && p.is_featured) ||
+      (tagFilter === 'outofstock' && !p.in_stock);
+
+    return matchesSearch && matchesCat && matchesTag;
   });
 
   const liveDiscountPercent =
@@ -278,7 +376,7 @@ export const ProductsManager: React.FC = () => {
         <div>
           <h1 className="font-display text-2xl font-black text-ink">Products Inventory</h1>
           <p className="text-xs text-muted mt-1">
-            Manage catalog items, pricing, multi-image Cloudinary media, and live stock statuses.
+            Manage catalog items, pricing, Best Sellers, New Arrivals, Combos, and live stock statuses.
           </p>
         </div>
 
@@ -290,6 +388,31 @@ export const ProductsManager: React.FC = () => {
           <Plus className="h-4 w-4" />
           <span>Add New Product</span>
         </button>
+      </div>
+
+      {/* Filter Tabs for Quick Tag Filtering */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {[
+          { key: 'all', label: `All Products (${products.length})` },
+          { key: 'bestseller', label: `🔥 Best Sellers (${products.filter((p) => p.is_best_seller).length})` },
+          { key: 'newarrival', label: `⚡ New Arrivals (${products.filter((p) => p.is_new_arrival).length})` },
+          { key: 'combo', label: `🎁 Combos (${products.filter((p) => p.is_combo).length})` },
+          { key: 'featured', label: `⭐ Featured (${products.filter((p) => p.is_featured).length})` },
+          { key: 'outofstock', label: `Out of Stock (${products.filter((p) => !p.in_stock).length})` },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setTagFilter(tab.key as ProductTagFilter)}
+            className={`whitespace-nowrap rounded-2xl px-3.5 py-1.5 text-xs font-bold transition ${
+              tagFilter === tab.key
+                ? 'bg-accent text-white shadow-glow'
+                : 'border border-line bg-surface text-muted hover:border-accent hover:text-ink'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -329,8 +452,8 @@ export const ProductsManager: React.FC = () => {
                 <th className="py-3.5 px-4">Product</th>
                 <th className="py-3.5 px-4">Price / MRP</th>
                 <th className="py-3.5 px-4">Category</th>
+                <th className="py-3.5 px-4">Storefront Badges &amp; Widgets</th>
                 <th className="py-3.5 px-4 text-center">In Stock</th>
-                <th className="py-3.5 px-4 text-center">Featured</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -346,7 +469,7 @@ export const ProductsManager: React.FC = () => {
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-muted">
                     <Package className="mx-auto h-8 w-8 text-muted mb-2" />
-                    <p className="text-xs font-bold text-ink">No products found.</p>
+                    <p className="text-xs font-bold text-ink">No products found matching filters.</p>
                   </td>
                 </tr>
               ) : (
@@ -386,6 +509,69 @@ export const ProductsManager: React.FC = () => {
                           {cat?.name || 'Uncategorized'}
                         </span>
                       </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {/* Featured toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleFeatured(p)}
+                            title="Toggle Featured"
+                            className={`rounded-lg px-2 py-0.5 text-[10px] font-bold transition flex items-center gap-1 ${
+                              p.is_featured
+                                ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                                : 'bg-cloud text-muted opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            <Star className={`h-2.5 w-2.5 ${p.is_featured ? 'fill-amber-500' : ''}`} />
+                            <span>Featured</span>
+                          </button>
+
+                          {/* Best Seller toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBestSeller(p)}
+                            title="Toggle Best Seller"
+                            className={`rounded-lg px-2 py-0.5 text-[10px] font-bold transition flex items-center gap-1 ${
+                              p.is_best_seller
+                                ? 'bg-rose-500/15 text-rose-500 border border-rose-500/30'
+                                : 'bg-cloud text-muted opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            <Flame className="h-2.5 w-2.5" />
+                            <span>Best Seller</span>
+                          </button>
+
+                          {/* New Arrival toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleNewArrival(p)}
+                            title="Toggle New Arrival"
+                            className={`rounded-lg px-2 py-0.5 text-[10px] font-bold transition flex items-center gap-1 ${
+                              p.is_new_arrival
+                                ? 'bg-blue-500/15 text-blue-500 border border-blue-500/30'
+                                : 'bg-cloud text-muted opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            <Sparkles className="h-2.5 w-2.5" />
+                            <span>New</span>
+                          </button>
+
+                          {/* Combo toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCombo(p)}
+                            title="Toggle Combo Pack"
+                            className={`rounded-lg px-2 py-0.5 text-[10px] font-bold transition flex items-center gap-1 ${
+                              p.is_combo
+                                ? 'bg-purple-500/15 text-purple-500 border border-purple-500/30'
+                                : 'bg-cloud text-muted opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            <Gift className="h-2.5 w-2.5" />
+                            <span>Combo</span>
+                          </button>
+                        </div>
+                      </td>
                       <td className="py-3.5 px-4 text-center">
                         <button
                           type="button"
@@ -399,17 +585,6 @@ export const ProductsManager: React.FC = () => {
                               p.in_stock ? 'translate-x-6' : 'translate-x-1'
                             }`}
                           />
-                        </button>
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleFeatured(p)}
-                          className={`rounded-full p-1.5 transition ${
-                            p.is_featured ? 'text-amber-500 bg-amber-500/10' : 'text-muted hover:text-ink'
-                          }`}
-                        >
-                          <Star className={`h-4 w-4 ${p.is_featured ? 'fill-amber-500' : ''}`} />
                         </button>
                       </td>
                       <td className="py-3.5 px-4 text-right">
@@ -634,32 +809,88 @@ export const ProductsManager: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-line">
-                  <label className="flex items-center gap-3 rounded-2xl border border-line bg-cloud/20 p-3.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formInStock}
-                      onChange={(e) => setFormInStock(e.target.checked)}
-                      className="h-4 w-4 rounded text-accent focus:ring-accent"
-                    />
-                    <div>
-                      <span className="text-xs font-bold text-ink block">In Stock</span>
-                      <span className="text-[10px] text-muted">Visible for customer purchase</span>
-                    </div>
+                <div className="space-y-3 pt-2 border-t border-line">
+                  <label className="block text-xs font-bold text-muted uppercase tracking-wider">
+                    Storefront Visibility &amp; Placement Badges
                   </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="flex items-center gap-3 rounded-2xl border border-line bg-cloud/20 p-3.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formInStock}
+                        onChange={(e) => setFormInStock(e.target.checked)}
+                        className="h-4 w-4 rounded text-accent focus:ring-accent"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-ink block">In Stock</span>
+                        <span className="text-[10px] text-muted">Visible for customer purchase</span>
+                      </div>
+                    </label>
 
-                  <label className="flex items-center gap-3 rounded-2xl border border-line bg-cloud/20 p-3.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formIsFeatured}
-                      onChange={(e) => setFormIsFeatured(e.target.checked)}
-                      className="h-4 w-4 rounded text-accent focus:ring-accent"
-                    />
-                    <div>
-                      <span className="text-xs font-bold text-ink block">Featured / Bestseller</span>
-                      <span className="text-[10px] text-muted">Promoted on homepage showcase</span>
-                    </div>
-                  </label>
+                    <label className="flex items-center gap-3 rounded-2xl border border-line bg-cloud/20 p-3.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formIsFeatured}
+                        onChange={(e) => setFormIsFeatured(e.target.checked)}
+                        className="h-4 w-4 rounded text-accent focus:ring-accent"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-ink block flex items-center gap-1">
+                          <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                          <span>Featured Spotlight</span>
+                        </span>
+                        <span className="text-[10px] text-muted">Promoted on homepage showcase</span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 rounded-2xl border border-line bg-cloud/20 p-3.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formIsBestSeller}
+                        onChange={(e) => setFormIsBestSeller(e.target.checked)}
+                        className="h-4 w-4 rounded text-accent focus:ring-accent"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-ink block flex items-center gap-1">
+                          <Flame className="h-3 w-3 text-rose-500" />
+                          <span>Best Seller Widget</span>
+                        </span>
+                        <span className="text-[10px] text-muted">Shows in top Best Sellers widget</span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 rounded-2xl border border-line bg-cloud/20 p-3.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formIsNewArrival}
+                        onChange={(e) => setFormIsNewArrival(e.target.checked)}
+                        className="h-4 w-4 rounded text-accent focus:ring-accent"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-ink block flex items-center gap-1">
+                          <Sparkles className="h-3 w-3 text-blue-500" />
+                          <span>New Arrival Widget</span>
+                        </span>
+                        <span className="text-[10px] text-muted">Shows in New Arrivals section</span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 rounded-2xl border border-line bg-cloud/20 p-3.5 cursor-pointer sm:col-span-2">
+                      <input
+                        type="checkbox"
+                        checked={formIsCombo}
+                        onChange={(e) => setFormIsCombo(e.target.checked)}
+                        className="h-4 w-4 rounded text-accent focus:ring-accent"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-ink block flex items-center gap-1">
+                          <Gift className="h-3 w-3 text-purple-500" />
+                          <span>Power Combo Pack</span>
+                        </span>
+                        <span className="text-[10px] text-muted">Featured in Bundles &amp; Value Combos widget</span>
+                      </div>
+                    </label>
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-line flex items-center justify-end gap-3">

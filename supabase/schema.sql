@@ -134,11 +134,22 @@ create table if not exists public.products (
   highlights text[] not null default '{}'::text[],
   in_stock boolean not null default true,
   is_featured boolean not null default false,
+  is_best_seller boolean not null default false,
+  is_new_arrival boolean not null default false,
+  is_combo boolean not null default false,
   created_at timestamptz not null default now()
 );
 
+-- Ensure columns exist if table was already created
+alter table public.products add column if not exists is_best_seller boolean not null default false;
+alter table public.products add column if not exists is_new_arrival boolean not null default false;
+alter table public.products add column if not exists is_combo boolean not null default false;
+
 create index if not exists idx_products_category on public.products(category_id);
 create index if not exists idx_products_featured on public.products(is_featured);
+create index if not exists idx_products_best_seller on public.products(is_best_seller);
+create index if not exists idx_products_new_arrival on public.products(is_new_arrival);
+create index if not exists idx_products_combo on public.products(is_combo);
 create index if not exists idx_products_in_stock on public.products(in_stock);
 
 -- 6. ORDER NUMBER SEQUENCE & GENERATOR
