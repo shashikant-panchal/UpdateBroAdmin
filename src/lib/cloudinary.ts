@@ -49,9 +49,9 @@ export async function compressImage(
   options: CompressionOptions = {}
 ): Promise<{ blob: Blob; stats: CompressionStats }> {
   const {
-    maxWidth = 1400,
-    maxHeight = 1400,
-    quality = 0.80,
+    maxWidth = 1200,
+    maxHeight = 1200,
+    quality = 0.78,
     preferWebP = true,
   } = options;
 
@@ -93,7 +93,8 @@ export async function compressImage(
         canvas.width = width;
         canvas.height = height;
 
-        const ctx = canvas.getContext('2d', { alpha: false });
+        const isPng = file.type === 'image/png';
+        const ctx = canvas.getContext('2d', { alpha: isPng });
         if (!ctx) {
           resolve({
             blob: file,
@@ -109,13 +110,15 @@ export async function compressImage(
           return;
         }
 
-        // Fill white background for transparent PNG conversions
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, width, height);
+        // Fill white background only for non-PNG images to avoid black artifacts
+        if (!isPng) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, width, height);
+        }
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Try WebP first (30% smaller than JPEG), fallback to JPEG
-        const targetFormat = preferWebP ? 'image/webp' : 'image/jpeg';
+        // WebP is 30-40% smaller than JPEG and natively supports alpha channel
+        const targetFormat = preferWebP ? 'image/webp' : (isPng ? 'image/png' : 'image/jpeg');
 
         canvas.toBlob(
           (blob) => {
