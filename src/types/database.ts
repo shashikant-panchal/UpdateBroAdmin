@@ -50,12 +50,16 @@ export interface DbProduct {
   id: string;
   name: string;
   slug: string;
+  sku?: string | null;
   description: string | null;
   price: number;
   compare_at_price: number | null;
   category_id: string | null;
   images: string[];
   highlights: string[];
+  specs?: { label: string; value: string }[] | null;
+  warranty?: string | null;
+  in_box?: string[] | null;
   in_stock: boolean;
   is_featured: boolean;
   is_best_seller: boolean;
@@ -99,6 +103,7 @@ export interface DbStoreSettings {
   shipping_charge: number;
   free_shipping_above: number;
   cod_enabled: boolean;
+  tagline?: string;
 }
 
 export type OrderWithItems = DbOrder & {

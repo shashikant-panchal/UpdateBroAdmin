@@ -35,12 +35,15 @@ export const ProductsManager: React.FC = () => {
 
   const [formName, setFormName] = useState('');
   const [formSlug, setFormSlug] = useState('');
+  const [formSku, setFormSku] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formPrice, setFormPrice] = useState<number | ''>('');
   const [formComparePrice, setFormComparePrice] = useState<number | ''>('');
   const [formCategoryId, setFormCategoryId] = useState<string>('');
   const [formImages, setFormImages] = useState<string[]>([]);
   const [formHighlights, setFormHighlights] = useState<string[]>(['']);
+  const [formWarranty, setFormWarranty] = useState('1 Year Official Replacement Warranty');
+  const [formSpecs, setFormSpecs] = useState<{ label: string; value: string }[]>([]);
   const [formInStock, setFormInStock] = useState(true);
   const [formIsFeatured, setFormIsFeatured] = useState(false);
   const [formIsBestSeller, setFormIsBestSeller] = useState(false);
@@ -48,6 +51,14 @@ export const ProductsManager: React.FC = () => {
   const [formIsCombo, setFormIsCombo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const generateProductId = (productList: DbProduct[]) => {
+    const nextNum = productList.length + 1;
+    const candidate = `PRD${String(nextNum).padStart(4, '0')}`;
+    const exists = productList.some((p) => p.sku === candidate);
+    if (!exists) return candidate;
+    return `PRD${Math.floor(1000 + Math.random() * 9000)}`;
+  };
 
   const fetchData = async () => {
     if (!isSupabaseConfigured) {
@@ -61,7 +72,7 @@ export const ProductsManager: React.FC = () => {
       const [prodsRes, catsRes] = await Promise.all([
         supabase
           .from('products')
-          .select('id, name, slug, description, price, compare_at_price, category_id, images, highlights, in_stock, is_featured, is_best_seller, is_new_arrival, is_combo, created_at')
+          .select('*')
           .order('created_at', { ascending: false }),
 
         supabase
@@ -89,6 +100,7 @@ export const ProductsManager: React.FC = () => {
 
   const openAddModal = () => {
     setEditingProduct(null);
+    setFormSku(generateProductId(products));
     setFormName('');
     setFormSlug('');
     setFormDescription('');
@@ -97,6 +109,13 @@ export const ProductsManager: React.FC = () => {
     setFormCategoryId(categories[0]?.id || '');
     setFormImages([]);
     setFormHighlights(['']);
+    setFormWarranty('1 Year Official Replacement Warranty');
+    setFormSpecs([
+      { label: 'Bluetooth Version', value: '5.4' },
+      { label: 'Battery Backup', value: '48 Hours Total' },
+      { label: 'Fast Charging', value: '10 Mins = 5 Hours' },
+      { label: 'Water Resistance', value: 'IPX5' },
+    ]);
     setFormInStock(true);
     setFormIsFeatured(false);
     setFormIsBestSeller(false);
@@ -108,6 +127,7 @@ export const ProductsManager: React.FC = () => {
 
   const openEditModal = (p: DbProduct) => {
     setEditingProduct(p);
+    setFormSku(p.sku || p.slug.toUpperCase());
     setFormName(p.name);
     setFormSlug(p.slug);
     setFormDescription(p.description || '');
@@ -116,6 +136,17 @@ export const ProductsManager: React.FC = () => {
     setFormCategoryId(p.category_id || '');
     setFormImages(p.images || []);
     setFormHighlights(p.highlights && p.highlights.length > 0 ? p.highlights : ['']);
+    setFormWarranty(p.warranty || '1 Year Official Replacement Warranty');
+    setFormSpecs(
+      p.specs && p.specs.length > 0
+        ? p.specs
+        : (p.highlights || []).map((h) => {
+            const idx = h.indexOf(':');
+            return idx > 0
+              ? { label: h.slice(0, idx).trim(), value: h.slice(idx + 1).trim() }
+              : { label: 'Spec', value: h };
+          })
+    );
     setFormInStock(p.in_stock);
     setFormIsFeatured(p.is_featured ?? false);
     setFormIsBestSeller(p.is_best_seller ?? false);
@@ -134,6 +165,33 @@ export const ProductsManager: React.FC = () => {
         .replace(/^-+|-+$/g, '');
       setFormSlug(slugified);
     }
+  };
+
+  const handleDescriptionChange = (val: string) => {
+    const lines = val.split('\n');
+    if (lines.length > 5) {
+      setFormDescription(lines.slice(0, 5).join('\n'));
+      return;
+    }
+    if (val.length > 320) {
+      setFormDescription(val.slice(0, 320));
+      return;
+    }
+    setFormDescription(val);
+  };
+
+  const handleAddSpec = () => {
+    setFormSpecs([...formSpecs, { label: '', value: '' }]);
+  };
+
+  const handleUpdateSpec = (index: number, field: 'label' | 'value', val: string) => {
+    const updated = [...formSpecs];
+    updated[index] = { ...updated[index], [field]: val };
+    setFormSpecs(updated);
+  };
+
+  const handleRemoveSpec = (index: number) => {
+    setFormSpecs(formSpecs.filter((_, i) => i !== index));
   };
 
   const handleAddHighlight = () => {
@@ -161,15 +219,20 @@ export const ProductsManager: React.FC = () => {
       setIsSubmitting(true);
       setErrorMsg(null);
 
-      const payload = {
+      const cleanSpecs = formSpecs.filter((s) => s.label.trim() !== '' && s.value.trim() !== '');
+
+      const payload: Record<string, unknown> = {
         name: formName.trim(),
         slug: formSlug.trim(),
+        sku: formSku.trim() || generateProductId(products),
         description: formDescription.trim() || null,
         price: Number(formPrice),
         compare_at_price: formComparePrice !== '' ? Number(formComparePrice) : null,
         category_id: formCategoryId || null,
         images: formImages.filter((img) => img.trim() !== ''),
         highlights: formHighlights.filter((h) => h.trim() !== ''),
+        specs: cleanSpecs,
+        warranty: formWarranty.trim() || null,
         in_stock: formInStock,
         is_featured: formIsFeatured,
         is_best_seller: formIsBestSeller,
@@ -177,18 +240,60 @@ export const ProductsManager: React.FC = () => {
         is_combo: formIsCombo,
       };
 
+      let saveErr: any = null;
       if (editingProduct) {
         const { error } = await supabase
           .from('products')
           .update(payload)
           .eq('id', editingProduct.id);
-
-        if (error) throw error;
-        notifySuccess('Product Updated!', `"${payload.name}" was updated successfully.`);
+        saveErr = error;
       } else {
         const { error } = await supabase.from('products').insert(payload);
-        if (error) throw error;
-        notifySuccess('Product Created!', `"${payload.name}" is now live in store.`);
+        saveErr = error;
+      }
+
+      // If database is missing optional new columns (sku, warranty, specs), retry gracefully
+      if (
+        saveErr &&
+        (saveErr.message?.includes('sku') ||
+          saveErr.message?.includes('warranty') ||
+          saveErr.message?.includes('specs'))
+      ) {
+        const safePayload = { ...payload };
+        delete safePayload.sku;
+        delete safePayload.warranty;
+        delete safePayload.specs;
+
+        // Embed warranty & specs into highlights so no data is lost
+        const fallbackHighlights = [...formHighlights.filter((h) => h.trim() !== '')];
+        if (formWarranty) fallbackHighlights.push(`Warranty: ${formWarranty}`);
+        cleanSpecs.forEach((s) => {
+          fallbackHighlights.push(`${s.label}: ${s.value}`);
+        });
+        safePayload.highlights = fallbackHighlights;
+
+        if (editingProduct) {
+          const { error: retryErr } = await supabase
+            .from('products')
+            .update(safePayload)
+            .eq('id', editingProduct.id);
+          if (retryErr) throw retryErr;
+        } else {
+          const { error: retryErr } = await supabase.from('products').insert(safePayload);
+          if (retryErr) throw retryErr;
+        }
+
+        notifyInfo(
+          'Product Saved (Database Note)',
+          'Product saved! Run "supabase/add_tagline_and_specs.sql" in Supabase SQL editor to enable native columns for SKU and Technical Specs.'
+        );
+      } else if (saveErr) {
+        throw saveErr;
+      } else {
+        notifySuccess(
+          editingProduct ? 'Product Updated!' : 'Product Created!',
+          `"${payload.name}" is now live in store.`
+        );
       }
 
       setIsModalOpen(false);
@@ -498,7 +603,12 @@ export const ProductsManager: React.FC = () => {
                             )}
                           </div>
                           <div className="truncate max-w-xs">
-                            <p className="font-bold text-ink truncate">{p.name}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-bold text-ink truncate">{p.name}</p>
+                              <span className="font-mono text-[9px] bg-accent/15 text-accent font-bold px-1.5 py-0.5 rounded shrink-0">
+                                {p.sku || p.slug.toUpperCase()}
+                              </span>
+                            </div>
                             <p className="font-mono text-[10px] text-muted truncate">/{p.slug}</p>
                           </div>
                         </div>
@@ -679,18 +789,45 @@ export const ProductsManager: React.FC = () => {
                   </div>
                 )}
 
-                <div>
-                  <label className="block text-xs font-bold text-muted mb-1.5 uppercase tracking-wider">
-                    Product Title *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formName}
-                    onChange={(e) => handleNameChange(e.target.value)}
-                    placeholder="Enter product title..."
-                    className="h-11 w-full rounded-2xl border border-line bg-cloud/30 px-3.5 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-muted mb-1.5 uppercase tracking-wider">
+                      Product Title *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formName}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                      placeholder="e.g. UPDATE BRO Storm ANC Earbuds"
+                      className="h-11 w-full rounded-2xl border border-line bg-cloud/30 px-3.5 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-muted uppercase tracking-wider">
+                        Product ID (SKU) *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setFormSku(generateProductId(products))}
+                        title="Generate random Product ID"
+                        className="text-[10px] font-bold text-accent hover:underline flex items-center gap-1"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        <span>Randomize ID</span>
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={formSku}
+                      onChange={(e) => setFormSku(e.target.value.toUpperCase())}
+                      placeholder="PRD0001"
+                      className="h-11 w-full rounded-2xl border border-line bg-cloud/30 px-3.5 font-mono text-xs font-bold text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -817,17 +954,128 @@ export const ProductsManager: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Description (Restricted to 4-5 lines) */}
                 <div className="pt-2 border-t border-line">
-                  <label className="block text-xs font-bold text-muted mb-1.5 uppercase tracking-wider">
-                    Product Description
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-muted uppercase tracking-wider">
+                      Product Description (Max 4–5 Lines)
+                    </label>
+                    <div className="flex items-center gap-2 text-[10px] font-mono">
+                      <span
+                        className={
+                          formDescription.split('\n').length >= 5
+                            ? 'text-amber-500 font-bold'
+                            : 'text-muted'
+                        }
+                      >
+                        {formDescription ? formDescription.split('\n').length : 0} / 5 lines
+                      </span>
+                      <span className="text-muted">•</span>
+                      <span
+                        className={
+                          formDescription.length >= 300 ? 'text-amber-500 font-bold' : 'text-muted'
+                        }
+                      >
+                        {formDescription.length} / 320 chars
+                      </span>
+                    </div>
+                  </div>
                   <textarea
                     rows={4}
                     value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    placeholder="Provide in-depth hardware engineering specs, driver size, battery playtime..."
+                    onChange={(e) => handleDescriptionChange(e.target.value)}
+                    placeholder="Provide concise hardware overview: sound profile, playtime, premium materials (max 4-5 lines)..."
                     className="w-full rounded-2xl border border-line bg-cloud/30 p-3.5 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none resize-none leading-relaxed"
                   />
+                  <p className="mt-1 text-[10px] text-muted">
+                    Restricted to 4–5 lines for clean, balanced presentation in customer quick-view dialogs.
+                  </p>
+                </div>
+
+                {/* Warranty Coverage */}
+                <div className="pt-2 border-t border-line">
+                  <label className="block text-xs font-bold text-muted mb-1.5 uppercase tracking-wider">
+                    Official Warranty Coverage
+                  </label>
+                  <input
+                    type="text"
+                    value={formWarranty}
+                    onChange={(e) => setFormWarranty(e.target.value)}
+                    placeholder="1 Year Official Replacement Warranty"
+                    className="h-10 w-full rounded-2xl border border-line bg-cloud/30 px-3.5 text-xs font-bold text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+                  />
+                  <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-muted font-medium">Quick Presets:</span>
+                    {[
+                      '1 Year Official Replacement Warranty',
+                      '6 Months Brand Warranty',
+                      '2 Years Extended Warranty',
+                      '7 Days Hassle-Free Replacement',
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setFormWarranty(preset)}
+                        className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold transition ${
+                          formWarranty === preset
+                            ? 'border-accent bg-accent text-white'
+                            : 'border-line bg-cloud/40 text-muted hover:border-accent hover:text-ink'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Technical Specifications */}
+                <div className="pt-2 border-t border-line">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <label className="text-xs font-bold text-muted uppercase tracking-wider block">
+                        Technical Specifications
+                      </label>
+                      <span className="text-[10px] text-muted">
+                        Feeds the customer &ldquo;Technical Specs&rdquo; tab in product quick view.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddSpec}
+                      className="text-xs font-bold text-accent hover:underline flex items-center gap-1 shrink-0"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Add Spec Row</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {formSpecs.map((spec, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={spec.label}
+                          onChange={(e) => handleUpdateSpec(idx, 'label', e.target.value)}
+                          placeholder="Spec (e.g. Battery Life)"
+                          className="h-9 w-2/5 rounded-xl border border-line bg-cloud/30 px-3 text-xs font-bold text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+                        />
+                        <input
+                          type="text"
+                          value={spec.value}
+                          onChange={(e) => handleUpdateSpec(idx, 'value', e.target.value)}
+                          placeholder="Value (e.g. 48 Hours Playtime)"
+                          className="h-9 flex-1 rounded-xl border border-line bg-cloud/30 px-3 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSpec(idx)}
+                          className="rounded-xl p-2 text-muted hover:text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-3 pt-2 border-t border-line">

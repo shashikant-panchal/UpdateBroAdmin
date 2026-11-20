@@ -10,6 +10,7 @@ import {
   AlertCircle,
   RefreshCw,
   Trash2,
+  Sparkles,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbStoreSettings } from '../types/database';
@@ -24,6 +25,7 @@ export const StoreSettings: React.FC = () => {
     shipping_charge: 0,
     free_shipping_above: 0,
     cod_enabled: true,
+    tagline: 'Power Your World',
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -42,12 +44,15 @@ export const StoreSettings: React.FC = () => {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('store_settings')
-        .select('id, announcement_text, whatsapp_number, shipping_charge, free_shipping_above, cod_enabled')
+        .select('*')
         .eq('id', 1)
         .maybeSingle();
 
       if (!error && data) {
-        setSettings(data as DbStoreSettings);
+        setSettings({
+          ...data,
+          tagline: data.tagline || 'Power Your World',
+        } as DbStoreSettings);
       }
     } catch (err) {
       console.warn('Failed to load store settings:', err);
@@ -74,23 +79,33 @@ export const StoreSettings: React.FC = () => {
       setErrorMsg(null);
       setSuccessMsg(null);
 
-      const { error } = await supabase
-        .from('store_settings')
-        .upsert({
-          id: 1,
-          announcement_text: settings.announcement_text.trim(),
-          whatsapp_number: settings.whatsapp_number.trim(),
-          shipping_charge: Number(settings.shipping_charge),
-          free_shipping_above: Number(settings.free_shipping_above),
-          cod_enabled: settings.cod_enabled,
-        });
+      const payload: Record<string, unknown> = {
+        id: 1,
+        announcement_text: settings.announcement_text.trim(),
+        whatsapp_number: settings.whatsapp_number.trim(),
+        shipping_charge: Number(settings.shipping_charge),
+        free_shipping_above: Number(settings.free_shipping_above),
+        cod_enabled: settings.cod_enabled,
+        tagline: (settings.tagline || 'Power Your World').trim(),
+      };
 
-      if (error) throw error;
+      const { error } = await supabase.from('store_settings').upsert(payload);
+      if (error && error.message?.includes('tagline')) {
+        delete payload.tagline;
+        const retry = await supabase.from('store_settings').upsert(payload);
+        if (retry.error) throw retry.error;
+        notifyInfo(
+          'Settings Saved (Tagline SQL Pending)',
+          'Settings were updated. Execute "supabase/add_tagline_and_specs.sql" in Supabase SQL editor to enable database storage for the tagline.'
+        );
+      } else if (error) {
+        throw error;
+      }
 
       setSuccessMsg('Store settings updated successfully! Live across storefront.');
       notifySuccess(
         'Store Settings Saved!',
-        'Global policies, marquee announcement & shipping rules are now live across storefront.'
+        'Tagline, announcement marquee & shipping policies are now live across storefront.'
       );
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: unknown) {
@@ -178,6 +193,58 @@ export const StoreSettings: React.FC = () => {
       )}
 
       <form onSubmit={handleSave} className="space-y-6">
+        {/* Section 0: Brand Tagline Configuration */}
+        <div className="rounded-3xl border border-line bg-surface p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-2 text-accent">
+            <Sparkles className="h-4 w-4" />
+            <h3 className="font-display text-sm font-bold text-ink uppercase tracking-wider">
+              Storefront Brand Tagline
+            </h3>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-muted mb-1.5">
+              Tagline Below UPDATE BRO® Logo
+            </label>
+            <input
+              type="text"
+              required
+              value={settings.tagline ?? 'Power Your World'}
+              onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
+              placeholder="Power Your World"
+              className="h-11 w-full rounded-2xl border border-line bg-cloud/30 px-3.5 text-xs font-bold text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+            />
+            <p className="mt-1 text-[11px] text-muted">
+              Dynamically updates the brand slogan displayed directly underneath the UPDATE BRO® logo across the customer header, mobile drawer, and footer.
+            </p>
+
+            {/* Quick Presets */}
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] text-muted font-medium">Quick Presets:</span>
+              {[
+                'Power Your World',
+                'Sound. Power. Performance.',
+                'Every Device, Everywhere.',
+                'Engineered For The Bold',
+                'Next-Gen Audio & Gear',
+              ].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setSettings({ ...settings, tagline: preset })}
+                  className={`rounded-xl border px-2.5 py-1 text-[11px] font-bold transition ${
+                    settings.tagline === preset
+                      ? 'border-accent bg-accent text-white shadow-sm'
+                      : 'border-line bg-cloud/40 text-muted hover:border-accent hover:text-ink'
+                  }`}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Section 1: Marquee Announcement */}
         <div className="rounded-3xl border border-line bg-surface p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-accent">
