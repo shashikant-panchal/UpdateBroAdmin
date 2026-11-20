@@ -11,6 +11,13 @@ update public.store_settings
 set tagline = 'Power Your World'
 where tagline is null or tagline = '';
 
+-- Ensure admin can also insert store_settings if row 1 is ever missing
+drop policy if exists "Store settings are insertable only by admin" on public.store_settings;
+create policy "Store settings are insertable only by admin"
+  on public.store_settings for insert
+  to authenticated
+  with check ( public.is_admin() );
+
 -- 2. Add sku, warranty, specs, in_box to products table
 alter table public.products add column if not exists sku text;
 alter table public.products add column if not exists warranty text default '1 Year Official Replacement Warranty';

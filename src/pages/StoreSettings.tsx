@@ -74,32 +74,62 @@ export const StoreSettings: React.FC = () => {
       setSuccessMsg(null);
 
       const payload: Record<string, unknown> = {
-        id: 1,
-        announcement_text: settings.announcement_text.trim(),
-        whatsapp_number: settings.whatsapp_number.trim(),
-        shipping_charge: Number(settings.shipping_charge),
-        free_shipping_above: Number(settings.free_shipping_above),
-        cod_enabled: settings.cod_enabled,
+        announcement_text: (settings.announcement_text || '').trim(),
+        whatsapp_number: (settings.whatsapp_number || '').trim(),
+        shipping_charge: Number(settings.shipping_charge || 0),
+        free_shipping_above: Number(settings.free_shipping_above || 0),
+        cod_enabled: settings.cod_enabled ?? true,
         tagline: (settings.tagline || 'Power Your World').trim(),
       };
 
-      const { error } = await supabase.from('store_settings').upsert(payload);
-      if (error && error.message?.includes('tagline')) {
+      // 1. Direct update on existing row id: 1
+      let { data, error } = await supabase
+        .from('store_settings')
+        .update(payload)
+        .eq('id', 1)
+        .select();
+
+      // If tagline column is missing in Supabase schema, retry without tagline
+      if (
+        error &&
+        (error.message?.toLowerCase().includes('tagline') ||
+          error.details?.toLowerCase().includes('tagline') ||
+          (error as any)?.code === 'PGRST204' ||
+          (error as any)?.code === '42703')
+      ) {
         delete payload.tagline;
-        const retry = await supabase.from('store_settings').upsert(payload);
-        if (retry.error) throw retry.error;
-        notifyInfo(
-          'Settings Saved (Tagline SQL Pending)',
-          'Settings were updated. Execute "supabase/add_tagline_and_specs.sql" in Supabase SQL editor to enable database storage for the tagline.'
-        );
-      } else if (error) {
+        const retry = await supabase
+          .from('store_settings')
+          .update(payload)
+          .eq('id', 1)
+          .select();
+        error = retry.error;
+        data = retry.data;
+
+        if (!error) {
+          notifyInfo(
+            'Settings Saved (Tagline Column Pending)',
+            'Settings were saved! Run "supabase/add_tagline_and_specs.sql" in Supabase SQL editor to enable the custom tagline column.'
+          );
+        }
+      }
+
+      if (error) {
         throw error;
+      }
+
+      // If row 1 did not exist yet (empty table), insert it
+      if (!data || data.length === 0) {
+        const insertRes = await supabase
+          .from('store_settings')
+          .insert({ id: 1, ...payload });
+        if (insertRes.error) throw insertRes.error;
       }
 
       setSuccessMsg('Store settings updated successfully! Live across storefront.');
       notifySuccess(
         'Store Settings Saved!',
-        'Tagline, announcement marquee & shipping policies are now live across storefront.'
+        'Tagline & store policies are now live across storefront.'
       );
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: unknown) {
