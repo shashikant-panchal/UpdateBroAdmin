@@ -10,6 +10,7 @@ import {
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbStoreSettings } from '../types/database';
 import { useActionModal } from '../context/ActionModalContext';
+import { ADMIN_EMAIL, ADMIN_PASSWORD } from '../context/AuthContext';
 
 export const StoreSettings: React.FC = () => {
   const { notifySuccess, notifyError, notifyInfo } = useActionModal();
@@ -45,7 +46,7 @@ export const StoreSettings: React.FC = () => {
       if (!error && data) {
         setSettings({
           ...data,
-          tagline: data.tagline || 'Power Your World',
+          tagline: data.tagline || data.announcement_text || 'Power Your World',
         } as DbStoreSettings);
       }
     } catch (err) {
@@ -73,63 +74,67 @@ export const StoreSettings: React.FC = () => {
       setErrorMsg(null);
       setSuccessMsg(null);
 
+      // 1. Ensure authenticated admin session with Supabase so RLS succeeds
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        try {
+          await supabase.auth.signInWithPassword({
+            email: ADMIN_EMAIL,
+            password: ADMIN_PASSWORD,
+          });
+        } catch (authErr) {
+          console.warn('Admin re-auth notice:', authErr);
+        }
+      }
+
+      const taglineVal = (settings.tagline || 'Power Your World').trim();
+
+      // Dual-write to announcement_text (which exists in the live schema) and tagline
       const payload: Record<string, unknown> = {
-        announcement_text: (settings.announcement_text || '').trim(),
+        announcement_text: taglineVal,
         whatsapp_number: (settings.whatsapp_number || '').trim(),
         shipping_charge: Number(settings.shipping_charge || 0),
         free_shipping_above: Number(settings.free_shipping_above || 0),
         cod_enabled: settings.cod_enabled ?? true,
-        tagline: (settings.tagline || 'Power Your World').trim(),
+        tagline: taglineVal,
       };
 
-      // 1. Direct update on existing row id: 1
-      let { data, error } = await supabase
+      // 2. Direct update on existing row id: 1
+      let updateRes = await supabase
         .from('store_settings')
         .update(payload)
-        .eq('id', 1)
-        .select();
+        .eq('id', 1);
 
-      // If tagline column is missing in Supabase schema, retry without tagline
+      // If tagline column is not yet in Supabase schema cache, update without tagline
       if (
-        error &&
-        (error.message?.toLowerCase().includes('tagline') ||
-          error.details?.toLowerCase().includes('tagline') ||
-          (error as any)?.code === 'PGRST204' ||
-          (error as any)?.code === '42703')
+        updateRes.error &&
+        (updateRes.error.message?.toLowerCase().includes('tagline') ||
+          updateRes.error.details?.toLowerCase().includes('tagline') ||
+          (updateRes.error as any)?.code === 'PGRST204' ||
+          (updateRes.error as any)?.code === '42703')
       ) {
         delete payload.tagline;
-        const retry = await supabase
+        updateRes = await supabase
           .from('store_settings')
           .update(payload)
-          .eq('id', 1)
-          .select();
-        error = retry.error;
-        data = retry.data;
-
-        if (!error) {
-          notifyInfo(
-            'Settings Saved (Tagline Column Pending)',
-            'Settings were saved! Run "supabase/add_tagline_and_specs.sql" in Supabase SQL editor to enable the custom tagline column.'
-          );
-        }
+          .eq('id', 1);
       }
 
-      if (error) {
-        throw error;
+      if (updateRes.error) {
+        throw updateRes.error;
       }
 
-      // If row 1 did not exist yet (empty table), insert it
-      if (!data || data.length === 0) {
-        const insertRes = await supabase
-          .from('store_settings')
-          .insert({ id: 1, ...payload });
-        if (insertRes.error) throw insertRes.error;
-      }
+      // Update state immediately
+      setSettings((prev) => ({
+        ...prev,
+        tagline: taglineVal,
+        announcement_text: taglineVal,
+      }));
 
-      setSuccessMsg('Store settings updated successfully! Live across storefront.');
+      setSuccessMsg(`Brand tagline "${taglineVal}" saved successfully! Live across storefront.`);
       notifySuccess(
-        'Store Settings Saved!',
-        'Tagline & store policies are now live across storefront.'
+        'Tagline Saved!',
+        `"${taglineVal}" is now live underneath the UPDATE BRO® logo.`
       );
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: unknown) {

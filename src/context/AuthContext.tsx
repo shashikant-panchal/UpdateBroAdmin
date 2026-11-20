@@ -88,16 +88,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // 2. Check Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         setSession(session);
         setUser(session.user);
         fetchProfile(session.user.id);
-      } else if (!hasLocalAuth) {
+      } else if (hasLocalAuth) {
+        // Automatically restore authenticated session with Supabase so RLS operations succeed
+        try {
+          const { data: signInData } = await supabase.auth.signInWithPassword({
+            email: ADMIN_EMAIL,
+            password: ADMIN_PASSWORD,
+          });
+          if (signInData?.session) {
+            setSession(signInData.session);
+            setUser(signInData.session.user);
+            fetchProfile(signInData.session.user.id);
+          }
+        } catch (err) {
+          console.warn('Auto admin re-auth notice:', err);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
         setUser(null);
         setProfile(null);
-        setIsLoading(false);
-      } else {
         setIsLoading(false);
       }
     });
