@@ -74,17 +74,17 @@ export const StoreSettings: React.FC = () => {
       setErrorMsg(null);
       setSuccessMsg(null);
 
-      // 1. Ensure authenticated admin session with Supabase so RLS succeeds
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session) {
-        try {
-          await supabase.auth.signInWithPassword({
-            email: ADMIN_EMAIL,
-            password: ADMIN_PASSWORD,
-          });
-        } catch (authErr) {
-          console.warn('Admin re-auth notice:', authErr);
+      // 1. Ensure authenticated admin session with Supabase
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session || session.user?.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+        const authRes = await supabase.auth.signInWithPassword({
+          email: ADMIN_EMAIL,
+          password: ADMIN_PASSWORD,
+        });
+        if (authRes.error) {
+          throw new Error(`Admin authentication failed: ${authRes.error.message}`);
         }
+        session = authRes.data.session;
       }
 
       const taglineVal = (settings.tagline || 'Power Your World').trim();
@@ -99,36 +99,61 @@ export const StoreSettings: React.FC = () => {
         tagline: taglineVal,
       };
 
-      // 2. Direct update on existing row id: 1
-      let updateRes = await supabase
+      // 2. Direct update with select() to guarantee row updated in PostgreSQL
+      let { data, error } = await supabase
         .from('store_settings')
         .update(payload)
-        .eq('id', 1);
+        .eq('id', 1)
+        .select();
 
       // If tagline column is not yet in Supabase schema cache, update without tagline
       if (
-        updateRes.error &&
-        (updateRes.error.message?.toLowerCase().includes('tagline') ||
-          updateRes.error.details?.toLowerCase().includes('tagline') ||
-          (updateRes.error as any)?.code === 'PGRST204' ||
-          (updateRes.error as any)?.code === '42703')
+        error &&
+        (error.message?.toLowerCase().includes('tagline') ||
+          error.details?.toLowerCase().includes('tagline') ||
+          (error as any)?.code === 'PGRST204' ||
+          (error as any)?.code === '42703')
       ) {
         delete payload.tagline;
-        updateRes = await supabase
+        const retry = await supabase
           .from('store_settings')
           .update(payload)
-          .eq('id', 1);
+          .eq('id', 1)
+          .select();
+        data = retry.data;
+        error = retry.error;
       }
 
-      if (updateRes.error) {
-        throw updateRes.error;
+      if (error) {
+        throw error;
       }
 
-      // Update state immediately
+      // If update returned 0 rows, re-authenticate and retry
+      if (!data || data.length === 0) {
+        await supabase.auth.signInWithPassword({
+          email: ADMIN_EMAIL,
+          password: ADMIN_PASSWORD,
+        });
+        delete payload.tagline;
+        const retryAuth = await supabase
+          .from('store_settings')
+          .update(payload)
+          .eq('id', 1)
+          .select();
+        data = retryAuth.data;
+        if (retryAuth.error) throw retryAuth.error;
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error('Database write did not modify any rows. Please refresh and try again.');
+      }
+
+      // Update local state from database-confirmed result
+      const confirmed = data[0] as DbStoreSettings;
       setSettings((prev) => ({
         ...prev,
-        tagline: taglineVal,
-        announcement_text: taglineVal,
+        ...confirmed,
+        tagline: confirmed.tagline || confirmed.announcement_text || taglineVal,
       }));
 
       setSuccessMsg(`Brand tagline "${taglineVal}" saved successfully! Live across storefront.`);

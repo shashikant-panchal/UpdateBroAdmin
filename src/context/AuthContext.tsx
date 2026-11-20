@@ -89,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 2. Check Supabase session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
+      if (session && session.user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
         setSession(session);
         setUser(session.user);
         fetchProfile(session.user.id);
