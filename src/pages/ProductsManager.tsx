@@ -19,7 +19,7 @@ import type { DbCategory, DbProduct } from '../types/database';
 import { CloudinaryUploader } from '../components/CloudinaryUploader';
 import { useActionModal } from '../context/ActionModalContext';
 
-type ProductTagFilter = 'all' | 'bestseller' | 'newarrival' | 'combo' | 'featured' | 'outofstock';
+type ProductTagFilter = 'all' | 'bestseller' | 'newarrival' | 'combo' | 'featured' | 'catalogonly' | 'outofstock';
 
 export const ProductsManager: React.FC = () => {
   const { confirm, notifySuccess, notifyError, notifyInfo } = useActionModal();
@@ -360,6 +360,7 @@ export const ProductsManager: React.FC = () => {
       (tagFilter === 'newarrival' && p.is_new_arrival) ||
       (tagFilter === 'combo' && p.is_combo) ||
       (tagFilter === 'featured' && p.is_featured) ||
+      (tagFilter === 'catalogonly' && !p.is_best_seller && !p.is_new_arrival && !p.is_combo && !p.is_featured) ||
       (tagFilter === 'outofstock' && !p.in_stock);
 
     return matchesSearch && matchesCat && matchesTag;
@@ -398,6 +399,12 @@ export const ProductsManager: React.FC = () => {
           { key: 'newarrival', label: `⚡ New Arrivals (${products.filter((p) => p.is_new_arrival).length})` },
           { key: 'combo', label: `🎁 Combos (${products.filter((p) => p.is_combo).length})` },
           { key: 'featured', label: `⭐ Featured (${products.filter((p) => p.is_featured).length})` },
+          {
+            key: 'catalogonly',
+            label: `📦 Catalog Only (${
+              products.filter((p) => !p.is_best_seller && !p.is_new_arrival && !p.is_combo && !p.is_featured).length
+            })`,
+          },
           { key: 'outofstock', label: `Out of Stock (${products.filter((p) => !p.in_stock).length})` },
         ].map((tab) => (
           <button
@@ -510,66 +517,80 @@ export const ProductsManager: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {/* Featured toggle */}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleFeatured(p)}
-                            title="Toggle Featured"
-                            className={`rounded-lg px-2 py-0.5 text-[10px] font-bold transition flex items-center gap-1 ${
-                              p.is_featured
-                                ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
-                                : 'bg-cloud text-muted opacity-60 hover:opacity-100'
-                            }`}
-                          >
-                            <Star className={`h-2.5 w-2.5 ${p.is_featured ? 'fill-amber-500' : ''}`} />
-                            <span>Featured</span>
-                          </button>
+                        <div className="flex flex-col gap-1.5 min-w-[200px]">
+                          <div className="flex items-center gap-1.5 text-[10px]">
+                            <span className="text-muted font-medium">Placement:</span>
+                            {!(p.is_best_seller || p.is_new_arrival || p.is_combo || p.is_featured) ? (
+                              <span className="rounded-md bg-cloud px-1.5 py-0.5 font-semibold text-muted/80">
+                                Catalog Only
+                              </span>
+                            ) : (
+                              <span className="rounded-md bg-accent/10 px-1.5 py-0.5 font-bold text-accent">
+                                Active in Widgets
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {/* Best Seller toggle */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleBestSeller(p)}
+                              title={p.is_best_seller ? 'Click to remove from Best Sellers & Flash Deals' : 'Click to add to Best Sellers & Flash Deals'}
+                              className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition flex items-center gap-1 shadow-sm ${
+                                p.is_best_seller
+                                  ? 'bg-rose-500 text-white shadow-rose-500/20'
+                                  : 'bg-cloud text-muted border border-line hover:border-rose-500/40 hover:text-rose-500'
+                              }`}
+                            >
+                              <Flame className={`h-3 w-3 ${p.is_best_seller ? 'fill-white' : ''}`} />
+                              <span>Best Seller</span>
+                            </button>
 
-                          {/* Best Seller toggle */}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleBestSeller(p)}
-                            title="Toggle Best Seller"
-                            className={`rounded-lg px-2 py-0.5 text-[10px] font-bold transition flex items-center gap-1 ${
-                              p.is_best_seller
-                                ? 'bg-rose-500/15 text-rose-500 border border-rose-500/30'
-                                : 'bg-cloud text-muted opacity-60 hover:opacity-100'
-                            }`}
-                          >
-                            <Flame className="h-2.5 w-2.5" />
-                            <span>Best Seller</span>
-                          </button>
+                            {/* New Arrival toggle */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleNewArrival(p)}
+                              title={p.is_new_arrival ? 'Click to remove from New Arrivals' : 'Click to add to New Arrivals'}
+                              className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition flex items-center gap-1 shadow-sm ${
+                                p.is_new_arrival
+                                  ? 'bg-blue-500 text-white shadow-blue-500/20'
+                                  : 'bg-cloud text-muted border border-line hover:border-blue-500/40 hover:text-blue-500'
+                              }`}
+                            >
+                              <Sparkles className="h-3 w-3" />
+                              <span>New</span>
+                            </button>
 
-                          {/* New Arrival toggle */}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleNewArrival(p)}
-                            title="Toggle New Arrival"
-                            className={`rounded-lg px-2 py-0.5 text-[10px] font-bold transition flex items-center gap-1 ${
-                              p.is_new_arrival
-                                ? 'bg-blue-500/15 text-blue-500 border border-blue-500/30'
-                                : 'bg-cloud text-muted opacity-60 hover:opacity-100'
-                            }`}
-                          >
-                            <Sparkles className="h-2.5 w-2.5" />
-                            <span>New</span>
-                          </button>
+                            {/* Combo toggle */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCombo(p)}
+                              title={p.is_combo ? 'Click to remove from Combos widget' : 'Click to add to Combos widget'}
+                              className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition flex items-center gap-1 shadow-sm ${
+                                p.is_combo
+                                  ? 'bg-purple-500 text-white shadow-purple-500/20'
+                                  : 'bg-cloud text-muted border border-line hover:border-purple-500/40 hover:text-purple-500'
+                              }`}
+                            >
+                              <Gift className="h-3 w-3" />
+                              <span>Combo</span>
+                            </button>
 
-                          {/* Combo toggle */}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleCombo(p)}
-                            title="Toggle Combo Pack"
-                            className={`rounded-lg px-2 py-0.5 text-[10px] font-bold transition flex items-center gap-1 ${
-                              p.is_combo
-                                ? 'bg-purple-500/15 text-purple-500 border border-purple-500/30'
-                                : 'bg-cloud text-muted opacity-60 hover:opacity-100'
-                            }`}
-                          >
-                            <Gift className="h-2.5 w-2.5" />
-                            <span>Combo</span>
-                          </button>
+                            {/* Featured toggle */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleFeatured(p)}
+                              title={p.is_featured ? 'Click to remove from Featured' : 'Click to feature on homepage'}
+                              className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition flex items-center gap-1 shadow-sm ${
+                                p.is_featured
+                                  ? 'bg-amber-500 text-white shadow-amber-500/20'
+                                  : 'bg-cloud text-muted border border-line hover:border-amber-500/40 hover:text-amber-500'
+                              }`}
+                            >
+                              <Star className={`h-3 w-3 ${p.is_featured ? 'fill-white' : ''}`} />
+                              <span>Featured</span>
+                            </button>
+                          </div>
                         </div>
                       </td>
                       <td className="py-3.5 px-4 text-center">
@@ -810,84 +831,127 @@ export const ProductsManager: React.FC = () => {
                 </div>
 
                 <div className="space-y-3 pt-2 border-t border-line">
-                  <label className="block text-xs font-bold text-muted uppercase tracking-wider">
-                    Storefront Visibility &amp; Placement Badges
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-xs font-bold text-muted uppercase tracking-wider">
+                        Storefront Widget Placement &amp; Visibility
+                      </label>
+                      <p className="text-[11px] text-muted mt-0.5">
+                        Products show in the general catalog by default. Select specific widgets below to showcase them on the homepage.
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label className="flex items-center gap-3 rounded-2xl border border-line bg-cloud/20 p-3.5 cursor-pointer">
+                    {/* In Stock */}
+                    <label
+                      className={`flex items-start gap-3 rounded-2xl border p-3.5 cursor-pointer transition ${
+                        formInStock
+                          ? 'border-emerald-500/50 bg-emerald-500/10 shadow-sm'
+                          : 'border-line bg-cloud/20 hover:border-muted/40'
+                      }`}
+                    >
                       <input
                         type="checkbox"
                         checked={formInStock}
                         onChange={(e) => setFormInStock(e.target.checked)}
-                        className="h-4 w-4 rounded text-accent focus:ring-accent"
+                        className="h-4 w-4 mt-0.5 rounded text-emerald-500 focus:ring-emerald-500 cursor-pointer"
                       />
                       <div>
-                        <span className="text-xs font-bold text-ink block">In Stock</span>
-                        <span className="text-[10px] text-muted">Visible for customer purchase</span>
+                        <span className="text-xs font-bold text-ink block">In Stock &amp; Available</span>
+                        <span className="text-[10px] text-muted">Customers can purchase this item</span>
                       </div>
                     </label>
 
-                    <label className="flex items-center gap-3 rounded-2xl border border-line bg-cloud/20 p-3.5 cursor-pointer">
+                    {/* Best Seller / Flash Deal */}
+                    <label
+                      className={`flex items-start gap-3 rounded-2xl border p-3.5 cursor-pointer transition ${
+                        formIsBestSeller
+                          ? 'border-rose-500/50 bg-rose-500/10 shadow-sm'
+                          : 'border-line bg-cloud/20 hover:border-muted/40'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formIsBestSeller}
+                        onChange={(e) => setFormIsBestSeller(e.target.checked)}
+                        className="h-4 w-4 mt-0.5 rounded text-rose-500 focus:ring-rose-500 cursor-pointer"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-ink block flex items-center gap-1">
+                          <Flame className="h-3 w-3 text-rose-500 fill-rose-500" />
+                          <span>Best Seller / Flash Deal</span>
+                        </span>
+                        <span className="text-[10px] text-muted">Exclusively feeds the Best Sellers &amp; Flash Deals section</span>
+                      </div>
+                    </label>
+
+                    {/* New Arrival */}
+                    <label
+                      className={`flex items-start gap-3 rounded-2xl border p-3.5 cursor-pointer transition ${
+                        formIsNewArrival
+                          ? 'border-blue-500/50 bg-blue-500/10 shadow-sm'
+                          : 'border-line bg-cloud/20 hover:border-muted/40'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formIsNewArrival}
+                        onChange={(e) => setFormIsNewArrival(e.target.checked)}
+                        className="h-4 w-4 mt-0.5 rounded text-blue-500 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-ink block flex items-center gap-1">
+                          <Sparkles className="h-3 w-3 text-blue-500" />
+                          <span>New Arrival Section</span>
+                        </span>
+                        <span className="text-[10px] text-muted">Exclusively feeds the New Arrivals showcase</span>
+                      </div>
+                    </label>
+
+                    {/* Featured */}
+                    <label
+                      className={`flex items-start gap-3 rounded-2xl border p-3.5 cursor-pointer transition ${
+                        formIsFeatured
+                          ? 'border-amber-500/50 bg-amber-500/10 shadow-sm'
+                          : 'border-line bg-cloud/20 hover:border-muted/40'
+                      }`}
+                    >
                       <input
                         type="checkbox"
                         checked={formIsFeatured}
                         onChange={(e) => setFormIsFeatured(e.target.checked)}
-                        className="h-4 w-4 rounded text-accent focus:ring-accent"
+                        className="h-4 w-4 mt-0.5 rounded text-amber-500 focus:ring-amber-500 cursor-pointer"
                       />
                       <div>
                         <span className="text-xs font-bold text-ink block flex items-center gap-1">
                           <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
                           <span>Featured Spotlight</span>
                         </span>
-                        <span className="text-[10px] text-muted">Promoted on homepage showcase</span>
+                        <span className="text-[10px] text-muted">Promoted prominently on homepage hero grid</span>
                       </div>
                     </label>
 
-                    <label className="flex items-center gap-3 rounded-2xl border border-line bg-cloud/20 p-3.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formIsBestSeller}
-                        onChange={(e) => setFormIsBestSeller(e.target.checked)}
-                        className="h-4 w-4 rounded text-accent focus:ring-accent"
-                      />
-                      <div>
-                        <span className="text-xs font-bold text-ink block flex items-center gap-1">
-                          <Flame className="h-3 w-3 text-rose-500" />
-                          <span>Best Seller Widget</span>
-                        </span>
-                        <span className="text-[10px] text-muted">Shows in top Best Sellers widget</span>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center gap-3 rounded-2xl border border-line bg-cloud/20 p-3.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formIsNewArrival}
-                        onChange={(e) => setFormIsNewArrival(e.target.checked)}
-                        className="h-4 w-4 rounded text-accent focus:ring-accent"
-                      />
-                      <div>
-                        <span className="text-xs font-bold text-ink block flex items-center gap-1">
-                          <Sparkles className="h-3 w-3 text-blue-500" />
-                          <span>New Arrival Widget</span>
-                        </span>
-                        <span className="text-[10px] text-muted">Shows in New Arrivals section</span>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center gap-3 rounded-2xl border border-line bg-cloud/20 p-3.5 cursor-pointer sm:col-span-2">
+                    {/* Power Combo */}
+                    <label
+                      className={`flex items-start gap-3 rounded-2xl border p-3.5 cursor-pointer transition sm:col-span-2 ${
+                        formIsCombo
+                          ? 'border-purple-500/50 bg-purple-500/10 shadow-sm'
+                          : 'border-line bg-cloud/20 hover:border-muted/40'
+                      }`}
+                    >
                       <input
                         type="checkbox"
                         checked={formIsCombo}
                         onChange={(e) => setFormIsCombo(e.target.checked)}
-                        className="h-4 w-4 rounded text-accent focus:ring-accent"
+                        className="h-4 w-4 mt-0.5 rounded text-purple-500 focus:ring-purple-500 cursor-pointer"
                       />
                       <div>
                         <span className="text-xs font-bold text-ink block flex items-center gap-1">
                           <Gift className="h-3 w-3 text-purple-500" />
                           <span>Power Combo Pack</span>
                         </span>
-                        <span className="text-[10px] text-muted">Featured in Bundles &amp; Value Combos widget</span>
+                        <span className="text-[10px] text-muted">Exclusively feeds the Value Combos &amp; Bundle Deals widget</span>
                       </div>
                     </label>
                   </div>
