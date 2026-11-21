@@ -99,6 +99,19 @@ export interface DbOrder {
   updated_at: string;
 }
 
+export interface WidgetSectionConfig {
+  id: string; // 'hot_deals' | 'new_arrivals' | 'featured' | 'combos'
+  title: string;
+  subtitle: string;
+  badge?: string;
+  enabled: boolean;
+  sort_order: number;
+  timer_enabled?: boolean;
+  timer_hours?: number;
+  discount_badge?: string;
+  product_ids: string[];
+}
+
 export interface DbStoreSettings {
   id: number;
   announcement_text: string;
@@ -107,6 +120,7 @@ export interface DbStoreSettings {
   free_shipping_above: number;
   cod_enabled: boolean;
   tagline?: string;
+  widgets_config?: WidgetSectionConfig[];
 }
 
 export type OrderWithItems = DbOrder & {

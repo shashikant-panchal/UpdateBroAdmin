@@ -12,8 +12,10 @@ import {
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbOrder, DbProduct } from '../types/database';
 
+import type { AdminTab } from '../layouts/AdminLayout';
+
 interface DashboardOverviewProps {
-  onNavigateTab: (tab: 'orders' | 'products' | 'categories' | 'banners' | 'settings') => void;
+  onNavigateTab: (tab: AdminTab) => void;
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigateTab }) => {
@@ -356,6 +358,17 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
               Store Quick Controls
             </h4>
             <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => onNavigateTab('widgets')}
+                className="flex w-full items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3 text-xs font-bold text-ink hover:border-accent transition"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-accent" />
+                  <span>Manage Homepage Widgets &amp; Deals</span>
+                </div>
+                <ArrowRight className="h-3.5 w-3.5 text-muted" />
+              </button>
               <button
                 type="button"
                 onClick={() => onNavigateTab('products')}

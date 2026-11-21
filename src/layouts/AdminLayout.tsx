@@ -7,6 +7,7 @@ import {
   Layers,
   Image as ImageIcon,
   Settings,
+  Sliders,
   ExternalLink,
   Sun,
   Moon,
@@ -18,7 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { BrandLogo } from '../components/BrandLogo';
 
-export type AdminTab = 'overview' | 'orders' | 'products' | 'categories' | 'banners' | 'settings';
+export type AdminTab = 'overview' | 'orders' | 'products' | 'widgets' | 'categories' | 'banners' | 'settings';
 
 interface AdminLayoutProps {
   currentTab: AdminTab;
@@ -59,6 +60,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       label: 'Products',
       icon: Package,
       badge: null,
+    },
+    {
+      id: 'widgets' as AdminTab,
+      label: 'Widgets & Sections',
+      icon: Sliders,
+      badge: 'PRO',
+      badgeColor: 'bg-accent/20 text-accent border border-accent/30',
     },
     {
       id: 'categories' as AdminTab,

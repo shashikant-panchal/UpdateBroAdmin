@@ -135,9 +135,32 @@ export const ProductsManager: React.FC = () => {
     setFormComparePrice(p.compare_at_price || '');
     setFormCategoryId(p.category_id || '');
     setFormImages(p.images || []);
-    setFormHighlights(p.highlights && p.highlights.length > 0 ? p.highlights : ['']);
-    setFormWarranty(p.warranty || '1 Year Official Replacement Warranty');
-    setFormSpecs(
+
+    // Cleanly extract canonical warranty without duplication
+    let detectedWarranty = p.warranty?.trim() || '';
+    if (!detectedWarranty && p.highlights) {
+      const wHl = p.highlights.find((h) => /^warranty\s*:/i.test(h) || /^official warranty\s*:/i.test(h));
+      if (wHl) {
+        detectedWarranty = wHl.replace(/^.*?:\s*/i, '').trim();
+      }
+    }
+    if (!detectedWarranty && p.specs) {
+      const wSpec = p.specs.find((s) => s.label?.trim().toLowerCase() === 'warranty');
+      if (wSpec) {
+        detectedWarranty = wSpec.value?.trim() || '';
+      }
+    }
+    if (!detectedWarranty) {
+      detectedWarranty = '1 Year Official Replacement Warranty';
+    }
+
+    // Filter out warranty from highlights so it is NEVER duplicated in highlights list
+    const cleanHighlights = (p.highlights || []).filter(
+      (h) => !/^warranty\s*:/i.test(h) && !/^official warranty\s*:/i.test(h) && h.trim() !== ''
+    );
+
+    // Filter out warranty from specs so it is NEVER duplicated in technical specs list
+    const cleanRawSpecs = (
       p.specs && p.specs.length > 0
         ? p.specs
         : (p.highlights || []).map((h) => {
@@ -146,7 +169,11 @@ export const ProductsManager: React.FC = () => {
               ? { label: h.slice(0, idx).trim(), value: h.slice(idx + 1).trim() }
               : { label: 'Spec', value: h };
           })
-    );
+    ).filter((s) => s.label.trim().toLowerCase() !== 'warranty' && s.label.trim() !== '');
+
+    setFormHighlights(cleanHighlights.length > 0 ? cleanHighlights : ['']);
+    setFormWarranty(detectedWarranty);
+    setFormSpecs(cleanRawSpecs);
     setFormInStock(p.in_stock);
     setFormIsFeatured(p.is_featured ?? false);
     setFormIsBestSeller(p.is_best_seller ?? false);
@@ -219,7 +246,17 @@ export const ProductsManager: React.FC = () => {
       setIsSubmitting(true);
       setErrorMsg(null);
 
-      const cleanSpecs = formSpecs.filter((s) => s.label.trim() !== '' && s.value.trim() !== '');
+      // Clean specs - warranty has its own dedicated field and should not be a spec
+      const cleanSpecs = formSpecs.filter(
+        (s) => s.label.trim() !== '' && s.value.trim() !== '' && s.label.trim().toLowerCase() !== 'warranty'
+      );
+
+      // Clean highlights - strip any legacy embedded warranty strings
+      const cleanHighlights = formHighlights.filter(
+        (h) => h.trim() !== '' && !/^warranty\s*:/i.test(h) && !/^official warranty\s*:/i.test(h)
+      );
+
+      const canonicalWarranty = formWarranty.trim() || '1 Year Official Replacement Warranty';
 
       const payload: Record<string, unknown> = {
         name: formName.trim(),
@@ -230,9 +267,9 @@ export const ProductsManager: React.FC = () => {
         compare_at_price: formComparePrice !== '' ? Number(formComparePrice) : null,
         category_id: formCategoryId || null,
         images: formImages.filter((img) => img.trim() !== ''),
-        highlights: formHighlights.filter((h) => h.trim() !== ''),
+        highlights: cleanHighlights,
         specs: cleanSpecs,
-        warranty: formWarranty.trim() || null,
+        warranty: canonicalWarranty,
         in_stock: formInStock,
         is_featured: formIsFeatured,
         is_best_seller: formIsBestSeller,
@@ -264,9 +301,9 @@ export const ProductsManager: React.FC = () => {
         delete safePayload.warranty;
         delete safePayload.specs;
 
-        // Embed warranty & specs into highlights so no data is lost
-        const fallbackHighlights = [...formHighlights.filter((h) => h.trim() !== '')];
-        if (formWarranty) fallbackHighlights.push(`Warranty: ${formWarranty}`);
+        // Embed single canonical warranty into highlights without duplicating
+        const fallbackHighlights = cleanHighlights.filter((h) => !/^warranty\s*:/i.test(h));
+        if (canonicalWarranty) fallbackHighlights.push(`Warranty: ${canonicalWarranty}`);
         cleanSpecs.forEach((s) => {
           fallbackHighlights.push(`${s.label}: ${s.value}`);
         });
@@ -282,19 +319,28 @@ export const ProductsManager: React.FC = () => {
           const { error: retryErr } = await supabase.from('products').insert(safePayload);
           if (retryErr) throw retryErr;
         }
-
-        notifySuccess(
-          editingProduct ? 'Product Updated' : 'Product Created',
-          `"${payload.name}" is now live and updated in your store.`
-        );
       } else if (saveErr) {
         throw saveErr;
-      } else {
-        notifySuccess(
-          editingProduct ? 'Product Updated' : 'Product Created',
-          `"${payload.name}" is now live and updated in your store.`
-        );
       }
+
+      // Broadcast instant sync to all open tabs and storefront
+      try {
+        const syncChannel = new BroadcastChannel('ub_storefront_sync');
+        syncChannel.postMessage({
+          type: 'PRODUCT_SAVED',
+          id: editingProduct?.id,
+          timestamp: Date.now(),
+        });
+        syncChannel.close();
+      } catch {}
+      try {
+        localStorage.setItem('ub_last_sync_timestamp', Date.now().toString());
+      } catch {}
+
+      notifySuccess(
+        editingProduct ? 'Product Updated' : 'Product Created',
+        `"${payload.name}" is now live with updated warranty & specs.`
+      );
 
       setIsModalOpen(false);
       fetchData();
