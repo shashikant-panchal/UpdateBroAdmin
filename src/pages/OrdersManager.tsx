@@ -13,6 +13,8 @@ import {
   MapPin,
   RefreshCw,
   Package,
+  CreditCard,
+  Truck,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbOrder, DbOrderItem, OrderStatus } from '../types/database';
@@ -23,6 +25,7 @@ interface OrderWithItems extends DbOrder {
 }
 
 type FilterTab = 'All' | OrderStatus;
+type PaymentFilter = 'ALL' | 'COD' | 'ONLINE';
 
 const TABS: FilterTab[] = [
   'All',
@@ -59,6 +62,7 @@ export const OrdersManager: React.FC = () => {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [trackingNoteInput, setTrackingNoteInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -83,8 +87,8 @@ export const OrdersManager: React.FC = () => {
         .from('orders')
         .select(`
           id, order_number, user_id, customer_name, customer_phone,
-          shipping_address, payment_method, subtotal, shipping_fee,
-          total_amount, status, status_history, tracking_note, created_at, updated_at,
+          shipping_address, payment_method, payment_status, razorpay_order_id, razorpay_payment_id,
+          subtotal, shipping_fee, total_amount, status, status_history, tracking_note, created_at, updated_at,
           order_items ( id, product_name, product_image, quantity, unit_price )
         `, { count: 'exact' })
         .order('created_at', { ascending: false })
@@ -92,6 +96,12 @@ export const OrdersManager: React.FC = () => {
 
       if (activeTab !== 'All') {
         query = query.eq('status', activeTab);
+      }
+
+      if (paymentFilter === 'COD') {
+        query = query.eq('payment_method', 'COD');
+      } else if (paymentFilter === 'ONLINE') {
+        query = query.eq('payment_method', 'ONLINE');
       }
 
       if (searchQuery.trim()) {
@@ -114,7 +124,7 @@ export const OrdersManager: React.FC = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, [activeTab, page, searchQuery]);
+  }, [activeTab, paymentFilter, page, searchQuery]);
 
   // Realtime subscription for incoming orders
   useEffect(() => {
@@ -236,8 +246,55 @@ export const OrdersManager: React.FC = () => {
       </div>
 
       {/* Filter Tabs & Search Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Payment Method Selector (COD vs ONLINE) */}
+          <div className="flex items-center gap-1 rounded-2xl border border-line bg-surface p-1 shadow-sm">
+            {[
+              { id: 'ALL' as PaymentFilter, label: 'All Payments', icon: ShoppingBag },
+              { id: 'ONLINE' as PaymentFilter, label: 'ONLINE (Razorpay)', icon: CreditCard },
+              { id: 'COD' as PaymentFilter, label: 'Cash on Delivery (COD)', icon: Truck },
+            ].map((p) => {
+              const Icon = p.icon;
+              const isActive = paymentFilter === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    setPaymentFilter(p.id);
+                    setPage(1);
+                  }}
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                    isActive
+                      ? 'bg-accent text-white shadow-glow'
+                      : 'text-muted hover:text-ink hover:bg-cloud/60'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span>{p.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search UB-..., Name, Phone"
+              className="h-10 w-full rounded-2xl border border-line bg-surface pl-10 pr-4 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Status Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {TABS.map((tab) => {
             const isActive = activeTab === tab;
             return (
@@ -250,7 +307,7 @@ export const OrdersManager: React.FC = () => {
                 }}
                 className={`rounded-2xl px-3.5 py-2 text-xs font-bold transition whitespace-nowrap ${
                   isActive
-                    ? 'bg-accent text-white shadow-glow'
+                    ? 'bg-ink text-canvas dark:bg-white dark:text-ink'
                     : 'bg-cloud/60 text-muted hover:bg-cloud hover:text-ink border border-line'
                 }`}
               >
@@ -258,20 +315,6 @@ export const OrdersManager: React.FC = () => {
               </button>
             );
           })}
-        </div>
-
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Search UB-..., Name, Phone"
-            className="h-10 w-full rounded-2xl border border-line bg-surface pl-10 pr-4 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
-          />
         </div>
       </div>
 
@@ -328,8 +371,18 @@ export const OrdersManager: React.FC = () => {
                     <td className="py-3.5 px-4 font-mono font-bold text-ink">
                       ₹{ord.total_amount}
                     </td>
-                    <td className="py-3.5 px-4 font-medium text-muted">
-                      {ord.payment_method}
+                    <td className="py-3.5 px-4">
+                      {ord.payment_method === 'ONLINE' ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-500 whitespace-nowrap">
+                          <CreditCard className="h-3 w-3" />
+                          <span>ONLINE</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-1 text-[11px] font-bold text-amber-500 whitespace-nowrap">
+                          <Truck className="h-3 w-3" />
+                          <span>COD</span>
+                        </span>
+                      )}
                     </td>
                     <td className="py-3.5 px-4">
                       <span
@@ -489,6 +542,60 @@ export const OrdersManager: React.FC = () => {
                     </span>
                     <p className="mt-1 leading-relaxed text-ink">{selectedOrder.shipping_address}</p>
                   </div>
+                </div>
+
+                {/* Payment Information Card */}
+                <div className="rounded-2xl border border-line bg-cloud/40 p-4 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted">
+                      Payment Method
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider ${
+                        selectedOrder.payment_method === 'ONLINE'
+                          ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                          : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                      }`}
+                    >
+                      {selectedOrder.payment_method === 'ONLINE' ? (
+                        <>
+                          <CreditCard className="h-3 w-3" />
+                          <span>ONLINE (Paid)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Truck className="h-3 w-3" />
+                          <span>Cash on Delivery</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-line/60">
+                    <span className="text-muted">Total Payable:</span>
+                    <span className="font-mono font-black text-ink text-sm">
+                      ₹{selectedOrder.total_amount}
+                    </span>
+                  </div>
+
+                  {selectedOrder.razorpay_payment_id && (
+                    <div className="pt-2 border-t border-line/60 text-[11px] space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted">Razorpay Payment ID:</span>
+                        <span className="font-mono font-bold text-accent">
+                          {selectedOrder.razorpay_payment_id}
+                        </span>
+                      </div>
+                      {selectedOrder.razorpay_order_id && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted">Razorpay Order ID:</span>
+                          <span className="font-mono text-muted">
+                            {selectedOrder.razorpay_order_id}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="rounded-2xl border border-accent/30 bg-accent-soft/20 p-4 space-y-3">

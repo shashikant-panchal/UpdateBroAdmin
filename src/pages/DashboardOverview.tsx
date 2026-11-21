@@ -44,7 +44,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
       const [ordersRes, productsRes] = await Promise.all([
         supabase
           .from('orders')
-          .select('id, order_number, customer_name, customer_phone, total_amount, status, created_at')
+          .select('id, order_number, customer_name, customer_phone, total_amount, status, payment_method, created_at')
           .order('created_at', { ascending: false })
           .limit(30),
 
@@ -218,7 +218,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
                       UB
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-mono text-xs font-bold text-accent">{ord.order_number}</span>
                         <span
                           className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
@@ -230,6 +230,15 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
                           }`}
                         >
                           {ord.status}
+                        </span>
+                        <span
+                          className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                            ord.payment_method === 'ONLINE'
+                              ? 'bg-emerald-500/15 text-emerald-500'
+                              : 'bg-amber-500/15 text-amber-500'
+                          }`}
+                        >
+                          {ord.payment_method === 'ONLINE' ? 'ONLINE' : 'COD'}
                         </span>
                       </div>
                       <p className="text-xs text-ink font-semibold">{ord.customer_name}</p>

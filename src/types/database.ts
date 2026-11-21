@@ -86,6 +86,9 @@ export interface DbOrder {
   customer_phone: string;
   shipping_address: string;
   payment_method: string;
+  payment_status?: string | null;
+  razorpay_order_id?: string | null;
+  razorpay_payment_id?: string | null;
   subtotal: number;
   shipping_fee: number;
   total_amount: number;
