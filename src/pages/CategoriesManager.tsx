@@ -202,10 +202,27 @@ export const CategoriesManager: React.FC = () => {
       {/* Categories Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading ? (
-          <div className="col-span-full py-12 text-center text-muted">
-            <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-            <p className="mt-2 text-xs font-semibold">Loading categories...</p>
-          </div>
+          Array.from({ length: 6 }).map((_, idx) => (
+            <div
+              key={`category-skeleton-${idx}`}
+              className="animate-pulse rounded-3xl border border-line bg-surface p-5 shadow-sm space-y-4"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="h-14 w-14 shrink-0 rounded-2xl bg-cloud/80 border border-line" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-4 w-28 bg-cloud/80 rounded-md" />
+                  <div className="h-3 w-16 bg-cloud/60 rounded-md" />
+                </div>
+              </div>
+              <div className="pt-3 border-t border-line/60 flex items-center justify-between">
+                <div className="h-5 w-16 bg-cloud/80 rounded-full" />
+                <div className="flex gap-1.5">
+                  <div className="h-8 w-8 bg-cloud/80 rounded-xl" />
+                  <div className="h-8 w-8 bg-cloud/80 rounded-xl" />
+                </div>
+              </div>
+            </div>
+          ))
         ) : categories.length === 0 ? (
           <div className="col-span-full py-12 text-center text-muted">
             <Layers className="mx-auto h-8 w-8 text-muted mb-2" />

@@ -196,10 +196,25 @@ export const BannersManager: React.FC = () => {
       {/* Banners Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {isLoading ? (
-          <div className="col-span-full py-12 text-center text-muted">
-            <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-            <p className="mt-2 text-xs font-semibold">Loading banners...</p>
-          </div>
+          Array.from({ length: 2 }).map((_, idx) => (
+            <div
+              key={`banner-skeleton-${idx}`}
+              className="animate-pulse overflow-hidden rounded-3xl border border-line bg-surface shadow-sm space-y-4 p-4"
+            >
+              <div className="aspect-[21/9] w-full rounded-2xl bg-cloud/80 border border-line" />
+              <div className="space-y-2 pt-1">
+                <div className="h-4 w-48 bg-cloud/80 rounded-md" />
+                <div className="h-3 w-32 bg-cloud/60 rounded-md" />
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-line/60">
+                <div className="h-5 w-20 bg-cloud/80 rounded-full" />
+                <div className="flex gap-2">
+                  <div className="h-8 w-8 bg-cloud/80 rounded-xl" />
+                  <div className="h-8 w-8 bg-cloud/80 rounded-xl" />
+                </div>
+              </div>
+            </div>
+          ))
         ) : banners.length === 0 ? (
           <div className="col-span-full py-12 text-center text-muted">
             <ImageIcon className="mx-auto h-8 w-8 text-muted mb-2" />

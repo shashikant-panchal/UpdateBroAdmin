@@ -336,12 +336,37 @@ export const OrdersManager: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-line text-xs">
               {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted">
-                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                    <p className="mt-2 text-xs font-semibold">Loading orders...</p>
-                  </td>
-                </tr>
+                Array.from({ length: 6 }).map((_, idx) => (
+                  <tr key={`order-skeleton-${idx}`} className="animate-pulse">
+                    <td className="py-3.5 px-4">
+                      <div className="h-4 w-16 bg-cloud/80 rounded-md" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="space-y-1.5">
+                        <div className="h-3.5 w-28 bg-cloud/80 rounded-md" />
+                        <div className="h-2.5 w-20 bg-cloud/60 rounded-md" />
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-3.5 w-36 bg-cloud/80 rounded-md" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-4 w-16 bg-cloud/80 rounded-md" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-6 w-20 bg-cloud/80 rounded-full" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-6 w-18 bg-cloud/80 rounded-full" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-3.5 w-14 bg-cloud/80 rounded-md" />
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="h-7 w-16 bg-cloud/80 rounded-xl ml-auto" />
+                    </td>
+                  </tr>
+                ))
               ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-muted">

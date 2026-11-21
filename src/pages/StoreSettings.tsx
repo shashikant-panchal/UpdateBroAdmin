@@ -214,7 +214,34 @@ export const StoreSettings: React.FC = () => {
         </motion.div>
       )}
 
-      <form onSubmit={handleSave} className="space-y-6">
+      {isLoading ? (
+        <div className="space-y-6 animate-pulse">
+          <div className="rounded-3xl border border-line bg-surface p-6 shadow-sm space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-5 w-5 bg-cloud/80 rounded" />
+              <div className="h-4 w-48 bg-cloud/80 rounded" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-32 bg-cloud/80 rounded" />
+              <div className="h-11 w-full bg-cloud/80 rounded-2xl" />
+              <div className="h-3 w-64 bg-cloud/60 rounded" />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <div className="h-7 w-28 bg-cloud/80 rounded-xl" />
+              <div className="h-7 w-36 bg-cloud/80 rounded-xl" />
+              <div className="h-7 w-32 bg-cloud/80 rounded-xl" />
+            </div>
+          </div>
+          <div className="rounded-3xl border border-line bg-surface p-6 shadow-sm space-y-4">
+            <div className="h-4 w-40 bg-cloud/80 rounded" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="h-11 bg-cloud/80 rounded-2xl" />
+              <div className="h-11 bg-cloud/80 rounded-2xl" />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSave} className="space-y-6">
         {/* Section: Brand Tagline Configuration */}
         <div className="rounded-3xl border border-line bg-surface p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-accent">
@@ -279,6 +306,7 @@ export const StoreSettings: React.FC = () => {
           </button>
         </div>
       </form>
+      )}
     </div>
   );
 };

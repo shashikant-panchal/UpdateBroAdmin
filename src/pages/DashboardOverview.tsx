@@ -154,34 +154,51 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card, idx) => {
-          const Icon = card.icon;
-          return (
-            <motion.div
-              key={card.label}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.06 }}
-              className={`rounded-3xl border bg-gradient-to-br p-5 shadow-sm ${card.color} bg-surface`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted uppercase tracking-wider">{card.label}</span>
-                <div className="rounded-2xl bg-surface/80 p-2 shadow-xs">
-                  <Icon className="h-4 w-4" />
+        {isLoading
+          ? Array.from({ length: 4 }).map((_, idx) => (
+              <div
+                key={`stat-skeleton-${idx}`}
+                className="animate-pulse rounded-3xl border border-line bg-surface p-5 shadow-sm space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-3 w-24 bg-cloud/80 rounded" />
+                  <div className="h-8 w-8 bg-cloud/80 rounded-2xl" />
+                </div>
+                <div className="h-7 w-28 bg-cloud/80 rounded-md" />
+                <div className="h-3 w-36 bg-cloud/60 rounded" />
+                <div className="border-t border-line/60 pt-2">
+                  <div className="h-3 w-20 bg-cloud/80 rounded" />
                 </div>
               </div>
+            ))
+          : statCards.map((card, idx) => {
+              const Icon = card.icon;
+              return (
+                <motion.div
+                  key={card.label}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.06 }}
+                  className={`rounded-3xl border bg-gradient-to-br p-5 shadow-sm ${card.color} bg-surface`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-muted uppercase tracking-wider">{card.label}</span>
+                    <div className="rounded-2xl bg-surface/80 p-2 shadow-xs">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                  </div>
 
-              <div className="mt-3">
-                <h3 className="font-display text-2xl font-black text-ink">{card.value}</h3>
-                <p className="mt-1 text-[11px] text-muted">{card.desc}</p>
-              </div>
+                  <div className="mt-3">
+                    <h3 className="font-display text-2xl font-black text-ink">{card.value}</h3>
+                    <p className="mt-1 text-[11px] text-muted">{card.desc}</p>
+                  </div>
 
-              <div className="mt-3 border-t border-line/60 pt-2 text-[10px] font-bold text-ink">
-                {card.trend}
-              </div>
-            </motion.div>
-          );
-        })}
+                  <div className="mt-3 border-t border-line/60 pt-2 text-[10px] font-bold text-ink">
+                    {card.trend}
+                  </div>
+                </motion.div>
+              );
+            })}
       </div>
 
       {/* Main Grid: Recent Orders Feed + Inventory Alerts */}
@@ -203,7 +220,26 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
           </div>
 
           <div className="mt-4 divide-y divide-line">
-            {recentOrders.length === 0 ? (
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, idx) => (
+                <div
+                  key={`recent-order-skeleton-${idx}`}
+                  className="animate-pulse flex items-center justify-between py-3.5 px-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 shrink-0 rounded-2xl bg-cloud/80 border border-line" />
+                    <div className="space-y-1.5">
+                      <div className="h-3.5 w-32 bg-cloud/80 rounded" />
+                      <div className="h-3 w-24 bg-cloud/60 rounded" />
+                    </div>
+                  </div>
+                  <div className="text-right space-y-1.5">
+                    <div className="h-4 w-16 bg-cloud/80 rounded ml-auto" />
+                    <div className="h-2.5 w-10 bg-cloud/60 rounded ml-auto" />
+                  </div>
+                </div>
+              ))
+            ) : recentOrders.length === 0 ? (
               <p className="py-8 text-center text-xs text-muted">
                 No orders received yet. Placed orders will appear here in real time.
               </p>
@@ -264,7 +300,22 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
               <h3 className="font-display text-sm font-bold text-ink">Stock Alerts</h3>
             </div>
 
-            {stats.totalProducts === 0 ? (
+            {isLoading ? (
+              <div className="space-y-2.5">
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <div
+                    key={`stock-skeleton-${idx}`}
+                    className="animate-pulse flex items-center justify-between rounded-xl border border-line bg-cloud/40 p-2.5"
+                  >
+                    <div className="space-y-1.5 flex-1 pr-2">
+                      <div className="h-3.5 w-28 bg-cloud/80 rounded" />
+                      <div className="h-2.5 w-16 bg-cloud/60 rounded" />
+                    </div>
+                    <div className="h-6 w-14 bg-cloud/80 rounded-lg shrink-0" />
+                  </div>
+                ))}
+              </div>
+            ) : stats.totalProducts === 0 ? (
               <div className="rounded-2xl border border-line bg-cloud/20 p-4 text-center">
                 <Package className="mx-auto h-6 w-6 text-muted mb-1" />
                 <p className="text-xs font-bold text-ink">Catalog is empty</p>

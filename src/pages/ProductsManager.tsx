@@ -283,16 +283,16 @@ export const ProductsManager: React.FC = () => {
           if (retryErr) throw retryErr;
         }
 
-        notifyInfo(
-          'Product Saved (Database Note)',
-          'Product saved! Run "supabase/add_tagline_and_specs.sql" in Supabase SQL editor to enable native columns for SKU and Technical Specs.'
+        notifySuccess(
+          editingProduct ? 'Product Updated' : 'Product Created',
+          `"${payload.name}" is now live and updated in your store.`
         );
       } else if (saveErr) {
         throw saveErr;
       } else {
         notifySuccess(
-          editingProduct ? 'Product Updated!' : 'Product Created!',
-          `"${payload.name}" is now live in store.`
+          editingProduct ? 'Product Updated' : 'Product Created',
+          `"${payload.name}" is now live and updated in your store.`
         );
       }
 
@@ -571,12 +571,43 @@ export const ProductsManager: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-line text-xs">
               {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted">
-                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                    <p className="mt-2 text-xs font-semibold">Loading products...</p>
-                  </td>
-                </tr>
+                Array.from({ length: 6 }).map((_, idx) => (
+                  <tr key={`product-skeleton-${idx}`} className="animate-pulse">
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 shrink-0 rounded-2xl bg-cloud/80 border border-line" />
+                        <div className="space-y-2 flex-1">
+                          <div className="h-3.5 w-40 bg-cloud/80 rounded-md" />
+                          <div className="h-2.5 w-24 bg-cloud/60 rounded-md" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="space-y-1.5">
+                        <div className="h-3.5 w-16 bg-cloud/80 rounded-md" />
+                        <div className="h-2.5 w-12 bg-cloud/60 rounded-md" />
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-6 w-20 bg-cloud/80 rounded-xl" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex gap-1.5">
+                        <div className="h-5 w-16 bg-cloud/80 rounded-full" />
+                        <div className="h-5 w-14 bg-cloud/60 rounded-full" />
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
+                      <div className="h-6 w-11 bg-cloud/80 rounded-full mx-auto" />
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <div className="h-8 w-8 bg-cloud/80 rounded-xl" />
+                        <div className="h-8 w-8 bg-cloud/80 rounded-xl" />
+                      </div>
+                    </td>
+                  </tr>
+                ))
               ) : filteredProducts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-muted">
