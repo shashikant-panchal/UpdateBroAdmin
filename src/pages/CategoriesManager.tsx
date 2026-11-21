@@ -261,9 +261,8 @@ export const CategoriesManager: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleToggleActive(cat)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${
-                    cat.is_active ? 'bg-emerald-500/15 text-emerald-500' : 'bg-cloud text-muted'
-                  }`}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${cat.is_active ? 'bg-emerald-500/15 text-emerald-500' : 'bg-cloud text-muted'
+                    }`}
                 >
                   <span className={`h-1.5 w-1.5 rounded-full ${cat.is_active ? 'bg-emerald-500' : 'bg-muted'}`} />
                   <span>{cat.is_active ? 'Active' : 'Inactive'}</span>
