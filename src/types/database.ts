@@ -112,6 +112,24 @@ export interface WidgetSectionConfig {
   product_ids: string[];
 }
 
+export interface CustomWidgetConfig {
+  id: string;
+  title: string;
+  tagline: string;
+  badge?: string;
+  description: string;
+  price: number;
+  mrp: number;
+  discount_badge?: string;
+  images: string[];
+  features?: string[];
+  is_active: boolean;
+  button_text?: string;
+  requires_device_selection?: boolean;
+  supported_devices?: string[];
+  updated_at?: string;
+}
+
 export interface DbStoreSettings {
   id: number;
   announcement_text: string;
@@ -121,6 +139,7 @@ export interface DbStoreSettings {
   cod_enabled: boolean;
   tagline?: string;
   widgets_config?: WidgetSectionConfig[];
+  custom_widget?: CustomWidgetConfig | null;
 }
 
 export type OrderWithItems = DbOrder & {

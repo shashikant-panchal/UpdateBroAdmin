@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   Settings,
   Sliders,
+  Sparkles,
   Users,
   ExternalLink,
   Sun,
@@ -21,7 +22,7 @@ import { useTheme } from '../context/ThemeContext';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase } from '../lib/supabase';
 
-export type AdminTab = 'overview' | 'orders' | 'products' | 'widgets' | 'categories' | 'banners' | 'users' | 'settings';
+export type AdminTab = 'overview' | 'orders' | 'products' | 'widgets' | 'custom-widget' | 'categories' | 'banners' | 'users' | 'settings';
 
 interface AdminLayoutProps {
   currentTab: AdminTab;
@@ -100,6 +101,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       icon: Sliders,
       badge: 'PRO',
       badgeColor: 'bg-accent/20 text-accent border border-accent/30',
+    },
+    {
+      id: 'custom-widget' as AdminTab,
+      label: 'Custom Widget',
+      icon: Sparkles,
+      badge: 'SPECIAL',
+      badgeColor: 'bg-gradient-to-r from-accent to-orange-500 text-white',
     },
     {
       id: 'categories' as AdminTab,
