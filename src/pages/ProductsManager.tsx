@@ -18,6 +18,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbCategory, DbProduct } from '../types/database';
 import { CloudinaryUploader } from '../components/CloudinaryUploader';
 import { useActionModal } from '../context/ActionModalContext';
+import { notifyStorefrontSync } from '../lib/syncStorefront';
 
 type ProductTagFilter = 'all' | 'bestseller' | 'newarrival' | 'combo' | 'featured' | 'catalogonly' | 'outofstock';
 
@@ -139,13 +140,13 @@ export const ProductsManager: React.FC = () => {
     // Cleanly extract canonical warranty without duplication
     let detectedWarranty = p.warranty?.trim() || '';
     if (!detectedWarranty && p.highlights) {
-      const wHl = p.highlights.find((h) => /^warranty\s*:/i.test(h) || /^official warranty\s*:/i.test(h));
+      const wHl = p.highlights.find((h) => /warranty/i.test(h));
       if (wHl) {
         detectedWarranty = wHl.replace(/^.*?:\s*/i, '').trim();
       }
     }
     if (!detectedWarranty && p.specs) {
-      const wSpec = p.specs.find((s) => s.label?.trim().toLowerCase() === 'warranty');
+      const wSpec = p.specs.find((s) => /warranty/i.test(s.label));
       if (wSpec) {
         detectedWarranty = wSpec.value?.trim() || '';
       }
@@ -156,7 +157,7 @@ export const ProductsManager: React.FC = () => {
 
     // Filter out warranty from highlights so it is NEVER duplicated in highlights list
     const cleanHighlights = (p.highlights || []).filter(
-      (h) => !/^warranty\s*:/i.test(h) && !/^official warranty\s*:/i.test(h) && h.trim() !== ''
+      (h) => !/warranty/i.test(h) && h.trim() !== ''
     );
 
     // Filter out warranty from specs so it is NEVER duplicated in technical specs list
@@ -169,7 +170,7 @@ export const ProductsManager: React.FC = () => {
               ? { label: h.slice(0, idx).trim(), value: h.slice(idx + 1).trim() }
               : { label: 'Spec', value: h };
           })
-    ).filter((s) => s.label.trim().toLowerCase() !== 'warranty' && s.label.trim() !== '');
+    ).filter((s) => !/warranty/i.test(s.label) && !/warranty/i.test(s.value) && s.label.trim() !== '');
 
     setFormHighlights(cleanHighlights.length > 0 ? cleanHighlights : ['']);
     setFormWarranty(detectedWarranty);
@@ -248,12 +249,12 @@ export const ProductsManager: React.FC = () => {
 
       // Clean specs - warranty has its own dedicated field and should not be a spec
       const cleanSpecs = formSpecs.filter(
-        (s) => s.label.trim() !== '' && s.value.trim() !== '' && s.label.trim().toLowerCase() !== 'warranty'
+        (s) => s.label.trim() !== '' && s.value.trim() !== '' && !/warranty/i.test(s.label) && !/warranty/i.test(s.value)
       );
 
       // Clean highlights - strip any legacy embedded warranty strings
       const cleanHighlights = formHighlights.filter(
-        (h) => h.trim() !== '' && !/^warranty\s*:/i.test(h) && !/^official warranty\s*:/i.test(h)
+        (h) => h.trim() !== '' && !/warranty/i.test(h)
       );
 
       const canonicalWarranty = formWarranty.trim() || '1 Year Official Replacement Warranty';
@@ -302,10 +303,13 @@ export const ProductsManager: React.FC = () => {
         delete safePayload.specs;
 
         // Embed single canonical warranty into highlights without duplicating
-        const fallbackHighlights = cleanHighlights.filter((h) => !/^warranty\s*:/i.test(h));
+        const fallbackHighlights = cleanHighlights.filter((h) => !/warranty/i.test(h));
         if (canonicalWarranty) fallbackHighlights.push(`Warranty: ${canonicalWarranty}`);
         cleanSpecs.forEach((s) => {
-          fallbackHighlights.push(`${s.label}: ${s.value}`);
+          const specStr = `${s.label}: ${s.value}`;
+          if (!fallbackHighlights.some((h) => h.toLowerCase() === specStr.toLowerCase())) {
+            fallbackHighlights.push(specStr);
+          }
         });
         safePayload.highlights = fallbackHighlights;
 
@@ -323,19 +327,8 @@ export const ProductsManager: React.FC = () => {
         throw saveErr;
       }
 
-      // Broadcast instant sync to all open tabs and storefront
-      try {
-        const syncChannel = new BroadcastChannel('ub_storefront_sync');
-        syncChannel.postMessage({
-          type: 'PRODUCT_SAVED',
-          id: editingProduct?.id,
-          timestamp: Date.now(),
-        });
-        syncChannel.close();
-      } catch {}
-      try {
-        localStorage.setItem('ub_last_sync_timestamp', Date.now().toString());
-      } catch {}
+      // Broadcast instant sync and invalidate storefront client cache
+      notifyStorefrontSync();
 
       notifySuccess(
         editingProduct ? 'Product Updated' : 'Product Created',
@@ -369,6 +362,7 @@ export const ProductsManager: React.FC = () => {
         newStock ? 'Marked In Stock' : 'Marked Out of Stock',
         `"${product.name}" inventory status updated.`
       );
+      notifyStorefrontSync();
     } catch {
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, in_stock: product.in_stock } : p))
@@ -393,6 +387,7 @@ export const ProductsManager: React.FC = () => {
         newFeatured ? 'Featured on Storefront' : 'Removed from Featured',
         `"${product.name}" showcase preference saved.`
       );
+      notifyStorefrontSync();
     } catch {
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, is_featured: product.is_featured } : p))
@@ -417,6 +412,7 @@ export const ProductsManager: React.FC = () => {
         newVal ? 'Tagged as Best Seller' : 'Removed from Best Sellers',
         `"${product.name}" widget tag updated.`
       );
+      notifyStorefrontSync();
     } catch {
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, is_best_seller: product.is_best_seller } : p))
@@ -441,6 +437,7 @@ export const ProductsManager: React.FC = () => {
         newVal ? 'Tagged as New Arrival' : 'Removed from New Arrivals',
         `"${product.name}" widget tag updated.`
       );
+      notifyStorefrontSync();
     } catch {
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, is_new_arrival: product.is_new_arrival } : p))
@@ -465,6 +462,7 @@ export const ProductsManager: React.FC = () => {
         newVal ? 'Tagged as Power Combo' : 'Removed from Combos',
         `"${product.name}" combo widget status updated.`
       );
+      notifyStorefrontSync();
     } catch {
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, is_combo: product.is_combo } : p))
@@ -489,6 +487,7 @@ export const ProductsManager: React.FC = () => {
       if (!error) {
         setProducts((prev) => prev.filter((p) => p.id !== id));
         notifySuccess('Product Deleted', `"${name}" was deleted successfully.`);
+        notifyStorefrontSync();
       } else {
         notifyError('Delete Failed', error.message);
       }

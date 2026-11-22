@@ -12,6 +12,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbBanner } from '../types/database';
 import { CloudinaryUploader } from '../components/CloudinaryUploader';
 import { useActionModal } from '../context/ActionModalContext';
+import { notifyStorefrontSync } from '../lib/syncStorefront';
 
 export const BannersManager: React.FC = () => {
   const { confirm, notifySuccess, notifyError, notifyInfo } = useActionModal();
@@ -117,6 +118,7 @@ export const BannersManager: React.FC = () => {
         notifySuccess('Banner Created', `"${payload.title}" is now added to the carousel.`);
       }
 
+      notifyStorefrontSync();
       setIsModalOpen(false);
       fetchBanners();
     } catch (err: unknown) {
@@ -144,6 +146,7 @@ export const BannersManager: React.FC = () => {
       if (!error) {
         setBanners((prev) => prev.filter((b) => b.id !== id));
         notifySuccess('Banner Deleted', `"${title}" was removed.`);
+        notifyStorefrontSync();
       } else {
         notifyError('Delete Failed', error.message);
       }
@@ -164,6 +167,7 @@ export const BannersManager: React.FC = () => {
         updated ? 'Banner Visible' : 'Banner Hidden',
         `"${b.title}" carousel slide updated.`
       );
+      notifyStorefrontSync();
     } catch {
       setBanners((prev) =>
         prev.map((item) => (item.id === b.id ? { ...item, is_active: b.is_active } : item))

@@ -12,6 +12,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbCategory } from '../types/database';
 import { CloudinaryUploader } from '../components/CloudinaryUploader';
 import { useActionModal } from '../context/ActionModalContext';
+import { notifyStorefrontSync } from '../lib/syncStorefront';
 
 export const CategoriesManager: React.FC = () => {
   const { confirm, notifySuccess, notifyError, notifyInfo } = useActionModal();
@@ -123,6 +124,7 @@ export const CategoriesManager: React.FC = () => {
         notifySuccess('Category Created', `"${payload.name}" is now available in catalog.`);
       }
 
+      notifyStorefrontSync();
       setIsModalOpen(false);
       fetchCategories();
     } catch (err: unknown) {
@@ -150,6 +152,7 @@ export const CategoriesManager: React.FC = () => {
       if (!error) {
         setCategories((prev) => prev.filter((c) => c.id !== id));
         notifySuccess('Category Deleted', `"${name}" was deleted successfully.`);
+        notifyStorefrontSync();
       } else {
         notifyError('Delete Failed', error.message);
       }
@@ -170,6 +173,7 @@ export const CategoriesManager: React.FC = () => {
         updated ? 'Category Activated' : 'Category Hidden',
         `"${cat.name}" visibility updated.`
       );
+      notifyStorefrontSync();
     } catch {
       setCategories((prev) =>
         prev.map((c) => (c.id === cat.id ? { ...c, is_active: cat.is_active } : c))

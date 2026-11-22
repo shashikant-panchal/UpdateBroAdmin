@@ -27,6 +27,7 @@ import {
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbProduct, DbCategory, DbStoreSettings, WidgetSectionConfig } from '../types/database';
 import { useActionModal } from '../context/ActionModalContext';
+import { notifyStorefrontSync } from '../lib/syncStorefront';
 
 const DEFAULT_WIDGETS: WidgetSectionConfig[] = [
   {
@@ -259,15 +260,8 @@ export const WidgetsManager: React.FC = () => {
 
       await Promise.all(updatePromises.filter(Boolean));
 
-      // 3. Broadcast instant sync to all storefront tabs
-      try {
-        const bc = new BroadcastChannel('ub_storefront_sync');
-        bc.postMessage({ type: 'WIDGETS_UPDATED', timestamp: Date.now() });
-        bc.close();
-      } catch {}
-      try {
-        localStorage.setItem('ub_last_sync_timestamp', Date.now().toString());
-      } catch {}
+      // 3. Broadcast instant sync & clear storefront client cache
+      notifyStorefrontSync();
 
       notifySuccess(
         'Widgets Saved & Published!',

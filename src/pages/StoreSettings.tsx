@@ -11,6 +11,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbStoreSettings } from '../types/database';
 import { useActionModal } from '../context/ActionModalContext';
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from '../context/AuthContext';
+import { notifyStorefrontSync } from '../lib/syncStorefront';
 
 export const StoreSettings: React.FC = () => {
   const { notifySuccess, notifyError, notifyInfo } = useActionModal();
@@ -157,6 +158,7 @@ export const StoreSettings: React.FC = () => {
       }));
 
       setSuccessMsg(`Brand tagline "${taglineVal}" saved successfully! Live across storefront.`);
+      notifyStorefrontSync();
       notifySuccess(
         'Tagline Saved!',
         `"${taglineVal}" is now live underneath the UPDATE BRO® logo.`
