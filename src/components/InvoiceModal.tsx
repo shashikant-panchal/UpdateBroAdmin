@@ -4,13 +4,6 @@ import {
   Printer,
   X,
   ShieldCheck,
-  CheckCircle2,
-  Truck,
-  CreditCard,
-  Building2,
-  Mail,
-  Phone,
-  Calendar,
 } from 'lucide-react';
 import type { DbOrder, DbOrderItem } from '../types/database';
 import { BrandLogo } from './BrandLogo';
@@ -29,10 +22,6 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
 
   if (!order) return null;
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const invoiceNumber = `UB-INV-${order.order_number.replace(/^UB-/, '')}`;
   const formattedDate = new Date(order.created_at).toLocaleDateString('en-IN', {
     day: '2-digit',
@@ -44,29 +33,161 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
   const shippingFee = Number(order.shipping_fee || 0);
   const totalAmount = Number(order.total_amount);
 
-  return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto">
-        {/* Print Styles injected directly */}
-        <style dangerouslySetInnerHTML={{ __html: `
-          @media print {
-            body * {
-              visibility: hidden;
+  const handlePrint = () => {
+    if (!invoiceRef.current) {
+      window.print();
+      return;
+    }
+
+    const printElement = invoiceRef.current;
+    const printContent = printElement.innerHTML;
+
+    // Create an isolated hidden iframe for 100% reliable printing without parent DOM interference
+    const iframe = document.createElement('iframe');
+    iframe.name = 'print_frame';
+    iframe.style.position = 'fixed';
+    iframe.style.top = '-9999px';
+    iframe.style.left = '-9999px';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      window.print();
+      return;
+    }
+
+    // Capture all stylesheet links and style tags from current document
+    const styleTags = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((tag) => tag.outerHTML)
+      .join('\n');
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <title>${invoiceNumber} - UPDATE BRO Official Invoice</title>
+          ${styleTags}
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 12mm 15mm;
             }
-            #printable-invoice, #printable-invoice * {
-              visibility: visible;
+            *, *::before, *::after {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
             }
-            #printable-invoice {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-              margin: 0;
-              padding: 20px;
-              background: white !important;
-              color: black !important;
+            html, body {
+              background: #ffffff !important;
+              color: #0f172a !important;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+              height: auto !important;
+              overflow: visible !important;
+            }
+            .invoice-print-container {
+              max-width: 100% !important;
+              width: 100% !important;
+              margin: 0 auto !important;
+              padding: 10px !important;
+              background: #ffffff !important;
+              color: #0f172a !important;
               border: none !important;
               box-shadow: none !important;
+            }
+            table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+            }
+            th, td {
+              border-bottom: 1px solid #e2e8f0 !important;
+            }
+            svg {
+              color: #0f172a !important;
+              fill: currentColor !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-print-container">
+            ${printContent}
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    // Trigger printing once content is written
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.error('Iframe print error:', err);
+        window.print();
+      } finally {
+        setTimeout(() => {
+          try {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+          } catch {
+            // ignore
+          }
+        }, 2000);
+      }
+    }, 300);
+  };
+
+  return (
+    <AnimatePresence>
+      <div
+        id="printable-invoice-modal"
+        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
+      >
+        {/* Print Styles fallback for Ctrl+P */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media print {
+            body {
+              visibility: hidden !important;
+              background: white !important;
+            }
+            #printable-invoice-modal,
+            #printable-invoice-modal * {
+              visibility: visible !important;
+            }
+            #printable-invoice-modal {
+              position: absolute !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              height: auto !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+              color: #0f172a !important;
+              z-index: 999999 !important;
+              overflow: visible !important;
+            }
+            #printable-invoice {
+              border: none !important;
+              box-shadow: none !important;
+              margin: 0 auto !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              padding: 10px !important;
+              background: white !important;
+              color: #0f172a !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
             .no-print {
               display: none !important;
@@ -98,6 +219,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
                 <Printer className="h-4 w-4" />
                 <span>Print Invoice</span>
               </button>
+
               <button
                 type="button"
                 onClick={onClose}
@@ -120,7 +242,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-6">
                 <div>
                   <div className="flex items-center gap-3">
-                    <BrandLogo variant="horizontal" className="h-7 w-auto text-slate-950" />
+                    <BrandLogo variant="horizontal" className="h-7 w-auto text-slate-950" color="#0f172a" />
                   </div>
                   <p className="font-bold text-[10px] text-slate-500 uppercase tracking-widest mt-1">
                     Official Hardware &amp; Accessories Store
