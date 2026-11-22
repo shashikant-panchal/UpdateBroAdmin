@@ -45,10 +45,16 @@ export const StoreSettings: React.FC = () => {
         .maybeSingle();
 
       if (!error && data) {
+        const savedTagline =
+          data.tagline ||
+          data.announcement_text ||
+          localStorage.getItem('ub_admin_tagline') ||
+          'Powered by SNR';
         setSettings({
           ...data,
-          tagline: data.tagline || data.announcement_text || 'Power Your World',
+          tagline: savedTagline,
         } as DbStoreSettings);
+        localStorage.setItem('ub_admin_tagline', savedTagline);
       }
     } catch (err) {
       console.warn('Failed to load store settings:', err);
@@ -151,17 +157,19 @@ export const StoreSettings: React.FC = () => {
 
       // Update local state from database-confirmed result
       const confirmed = data[0] as DbStoreSettings;
+      const savedTagline = confirmed.tagline || confirmed.announcement_text || taglineVal;
       setSettings((prev) => ({
         ...prev,
         ...confirmed,
-        tagline: confirmed.tagline || confirmed.announcement_text || taglineVal,
+        tagline: savedTagline,
       }));
+      localStorage.setItem('ub_admin_tagline', savedTagline);
 
-      setSuccessMsg(`Brand tagline "${taglineVal}" saved successfully! Live across storefront.`);
+      setSuccessMsg(`Brand tagline "${savedTagline}" saved successfully! Live across storefront.`);
       notifyStorefrontSync();
       notifySuccess(
         'Tagline Saved!',
-        `"${taglineVal}" is now live underneath the UPDATE BRO® logo.`
+        `"${savedTagline}" is now live underneath the UPDATE BRO® logo.`
       );
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: unknown) {
@@ -260,9 +268,9 @@ export const StoreSettings: React.FC = () => {
             <input
               type="text"
               required
-              value={settings.tagline ?? 'Power Your World'}
+              value={settings.tagline ?? 'Powered by SNR'}
               onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
-              placeholder="Power Your World"
+              placeholder="e.g. Powered by SNR"
               className="h-11 w-full rounded-2xl border border-line bg-cloud/30 px-3.5 text-xs font-bold text-ink placeholder:text-muted focus:border-accent focus:outline-none"
             />
             <p className="mt-1 text-[11px] text-muted">
@@ -273,6 +281,7 @@ export const StoreSettings: React.FC = () => {
             <div className="mt-4 flex items-center gap-2 flex-wrap">
               <span className="text-[11px] text-muted font-medium">Quick Presets:</span>
               {[
+                'Powered by SNR',
                 'Power Your World',
                 'Sound. Power. Performance.',
                 'Every Device, Everywhere.',

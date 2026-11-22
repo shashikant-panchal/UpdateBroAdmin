@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   Settings,
   Sliders,
+  Users,
   ExternalLink,
   Sun,
   Moon,
@@ -18,8 +19,9 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { BrandLogo } from '../components/BrandLogo';
+import { supabase } from '../lib/supabase';
 
-export type AdminTab = 'overview' | 'orders' | 'products' | 'widgets' | 'categories' | 'banners' | 'settings';
+export type AdminTab = 'overview' | 'orders' | 'products' | 'widgets' | 'categories' | 'banners' | 'users' | 'settings';
 
 interface AdminLayoutProps {
   currentTab: AdminTab;
@@ -38,6 +40,37 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const { resolvedTheme, cycleMode } = useTheme();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [tagline, setTagline] = useState(() => {
+    return localStorage.getItem('ub_admin_tagline') || 'Powered by SNR';
+  });
+
+  useEffect(() => {
+    const fetchTagline = async () => {
+      try {
+        const { data } = await supabase
+          .from('store_settings')
+          .select('tagline, announcement_text')
+          .eq('id', 1)
+          .maybeSingle();
+        if (data) {
+          const val = data.tagline || data.announcement_text || 'Powered by SNR';
+          setTagline(val);
+          localStorage.setItem('ub_admin_tagline', val);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchTagline();
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'ub_admin_tagline' && e.newValue) {
+        setTagline(e.newValue);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const storefrontUrl = import.meta.env.VITE_STOREFRONT_URL || 'https://www.updatebro.in';
 
@@ -81,6 +114,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       badge: null,
     },
     {
+      id: 'users' as AdminTab,
+      label: 'Customers & Users',
+      icon: Users,
+      badge: null,
+    },
+    {
       id: 'settings' as AdminTab,
       label: 'Store Settings',
       icon: Settings,
@@ -98,8 +137,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           </div>
           <div className="flex flex-col leading-tight">
             <span className="font-display font-black text-sm text-ink tracking-tight">UPDATE BRO<span className="text-accent">®</span></span>
-            <span className="text-[8px] font-black uppercase text-accent tracking-widest mt-0.5">
-              Power Your World
+            <span className="text-[8px] font-black uppercase text-accent tracking-widest mt-0.5 truncate max-w-[130px]">
+              {tagline}
             </span>
           </div>
         </div>
@@ -138,8 +177,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             {!isSidebarCollapsed && (
               <div className="flex flex-col leading-tight">
                 <span className="font-display font-black text-sm text-ink tracking-tight">UPDATE BRO®</span>
-                <span className="text-[8px] font-black uppercase text-accent mt-0.5 tracking-wider">
-                  Power Your World
+                <span className="text-[8px] font-black uppercase text-accent mt-0.5 tracking-wider truncate max-w-[140px]">
+                  {tagline}
                 </span>
               </div>
             )}
@@ -272,8 +311,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                   </div>
                   <div className="flex flex-col leading-tight">
                     <span className="font-display font-black text-sm text-ink tracking-tight">UPDATE BRO®</span>
-                    <span className="text-[8px] font-black uppercase text-accent mt-0.5 tracking-wider">
-                      Power Your World
+                    <span className="text-[8px] font-black uppercase text-accent mt-0.5 tracking-wider truncate max-w-[140px]">
+                      {tagline}
                     </span>
                   </div>
                 </div>

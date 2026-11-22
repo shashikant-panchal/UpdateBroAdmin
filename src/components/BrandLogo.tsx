@@ -14,19 +14,25 @@ interface BrandLogoProps {
   color?: string;
   showSubtitle?: boolean;
   ariaLabel?: string;
+  tagline?: string;
 }
 
 /**
  * UPDATE BRO® Brand Typography
- * Precision Geometric Monogram, Extended Wordmark, and "Power Your World" tagline.
+ * Precision Geometric Monogram, Extended Wordmark, and Dynamic Tagline.
  */
 export const BrandLogo: React.FC<BrandLogoProps> = ({
   variant = 'horizontal',
   className = '',
   color,
   showSubtitle = true,
-  ariaLabel = 'UPDATE BRO® — Power Your World',
+  ariaLabel = 'UPDATE BRO®',
+  tagline: propTagline,
 }) => {
+  const activeTagline =
+    propTagline ||
+    (typeof window !== 'undefined' ? localStorage.getItem('ub_admin_tagline') : null) ||
+    'Powered by SNR';
   if (variant === 'monogram') {
     return (
       <svg
@@ -112,7 +118,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
           <div className="mt-2 flex items-center gap-2">
             <span className="h-[1px] w-5 bg-gradient-to-r from-transparent to-accent/80" />
             <span className="text-[9px] font-black uppercase tracking-[0.24em] text-accent">
-              Power Your World
+              {activeTagline}
             </span>
             <span className="h-[1px] w-5 bg-gradient-to-l from-transparent to-accent/80" />
           </div>
@@ -156,7 +162,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
           <div className="mt-0.5 flex items-center gap-1">
             <span className="h-[1px] w-2.5 bg-accent/60" />
             <span className="text-[7px] font-black uppercase tracking-[0.16em] text-accent">
-              Power Your World
+              {activeTagline}
             </span>
           </div>
         )}

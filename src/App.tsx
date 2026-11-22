@@ -10,6 +10,7 @@ import { ProductsManager } from './pages/ProductsManager';
 import { WidgetsManager } from './pages/WidgetsManager';
 import { CategoriesManager } from './pages/CategoriesManager';
 import { BannersManager } from './pages/BannersManager';
+import { UsersManager } from './pages/UsersManager';
 import { StoreSettings } from './pages/StoreSettings';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 
@@ -21,6 +22,7 @@ const AdminApp: React.FC = () => {
     if (path.includes('widgets') || path.includes('sections')) return 'widgets';
     if (path.includes('categories')) return 'categories';
     if (path.includes('banners')) return 'banners';
+    if (path.includes('users') || path.includes('customers')) return 'users';
     if (path.includes('settings')) return 'settings';
     return 'overview';
   });
@@ -43,6 +45,7 @@ const AdminApp: React.FC = () => {
       else if (path.includes('widgets') || path.includes('sections')) setCurrentTab('widgets');
       else if (path.includes('categories')) setCurrentTab('categories');
       else if (path.includes('banners')) setCurrentTab('banners');
+      else if (path.includes('users') || path.includes('customers')) setCurrentTab('users');
       else if (path.includes('settings')) setCurrentTab('settings');
       else setCurrentTab('overview');
     };
@@ -101,6 +104,7 @@ const AdminApp: React.FC = () => {
         {currentTab === 'widgets' && <WidgetsManager />}
         {currentTab === 'categories' && <CategoriesManager />}
         {currentTab === 'banners' && <BannersManager />}
+        {currentTab === 'users' && <UsersManager />}
         {currentTab === 'settings' && <StoreSettings />}
       </AdminLayout>
     </AdminGuard>

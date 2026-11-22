@@ -15,10 +15,13 @@ import {
   Package,
   CreditCard,
   Truck,
+  Printer,
+  FileText,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { DbOrder, DbOrderItem, OrderStatus } from '../types/database';
 import { useActionModal } from '../context/ActionModalContext';
+import { InvoiceModal } from '../components/InvoiceModal';
 
 interface OrderWithItems extends DbOrder {
   order_items: DbOrderItem[];
@@ -61,6 +64,7 @@ export const OrdersManager: React.FC = () => {
   const { confirm, notifySuccess, notifyError } = useActionModal();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
+  const [invoiceOrder, setInvoiceOrder] = useState<OrderWithItems | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -429,16 +433,30 @@ export const OrdersManager: React.FC = () => {
                       })}
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedOrder(ord);
-                        }}
-                        className="rounded-xl bg-cloud px-3 py-1.5 text-[11px] font-bold text-ink hover:bg-line transition"
-                      >
-                        Manage
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setInvoiceOrder(ord);
+                          }}
+                          className="rounded-xl border border-line bg-surface px-2.5 py-1.5 text-[11px] font-bold text-ink hover:border-accent hover:text-accent transition flex items-center gap-1 shadow-sm cursor-pointer"
+                          title="Generate &amp; Print Tax Invoice"
+                        >
+                          <Printer className="h-3.5 w-3.5 text-accent" />
+                          <span>Invoice</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedOrder(ord);
+                          }}
+                          className="rounded-xl bg-cloud px-3 py-1.5 text-[11px] font-bold text-ink hover:bg-line transition cursor-pointer"
+                        >
+                          Manage
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -623,6 +641,16 @@ export const OrdersManager: React.FC = () => {
                   )}
                 </div>
 
+                {/* Print Tax Invoice Action */}
+                <button
+                  type="button"
+                  onClick={() => setInvoiceOrder(selectedOrder)}
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3 text-xs font-bold text-ink hover:border-accent hover:text-accent shadow-sm transition cursor-pointer"
+                >
+                  <Printer className="h-4 w-4 text-accent" />
+                  <span>Generate &amp; Print Tax Invoice</span>
+                </button>
+
                 <div className="rounded-2xl border border-accent/30 bg-accent-soft/20 p-4 space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-accent">
                     Status Workflow Control
@@ -756,6 +784,12 @@ export const OrdersManager: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Invoice Generation & Print Modal */}
+      <InvoiceModal
+        order={invoiceOrder}
+        onClose={() => setInvoiceOrder(null)}
+      />
     </div>
   );
 };
