@@ -114,6 +114,9 @@ create table if not exists public.banners (
   cta_text text not null default 'Shop Now',
   cta_link text not null default '/shop',
   image_url text not null,
+  media_type text not null default 'image' check (media_type in ('image', 'video')),
+  video_url text,
+  poster_url text,
   sort_order int not null default 0,
   is_active boolean not null default true,
   created_at timestamptz not null default now()

@@ -34,6 +34,8 @@ export interface DbCategory {
   created_at: string;
 }
 
+export type BannerMediaType = 'image' | 'video';
+
 export interface DbBanner {
   id: string;
   title: string;
@@ -41,6 +43,9 @@ export interface DbBanner {
   cta_text: string;
   cta_link: string;
   image_url: string;
+  media_type?: BannerMediaType;
+  video_url?: string | null;
+  poster_url?: string | null;
   sort_order: number;
   is_active: boolean;
   created_at: string;

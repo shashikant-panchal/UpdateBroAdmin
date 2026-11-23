@@ -253,3 +253,175 @@ export async function uploadToCloudinary(
     xhr.send(formData);
   });
 }
+
+export interface VideoMetadata {
+  duration: number;
+  width: number;
+  height: number;
+  size: number;
+  format: string;
+}
+
+export interface VideoUploadResult {
+  videoUrl: string;
+  posterUrl: string;
+  publicId: string;
+  duration: number;
+  width: number;
+  height: number;
+  bytes: number;
+}
+
+/**
+ * Builds the least-compression HD delivery URL for videos:
+ * Uses q_auto:best, vc_h264, and w_1280,c_limit for razor-sharp playback without 4K overhead.
+ */
+export function buildVideoDeliveryUrl(publicId: string): string {
+  const cleanId = publicId.replace(/\.[^/.]+$/, '');
+  return `https://res.cloudinary.com/${CLOUD_NAME}/video/upload/w_1280,c_limit,q_auto:best,vc_h264/${cleanId}.mp4`;
+}
+
+/**
+ * Auto-derives a crisp JPG poster frame from the first video frame (so_0).
+ */
+export function buildVideoPosterUrl(publicId: string): string {
+  const cleanId = publicId.replace(/\.[^/.]+$/, '');
+  return `https://res.cloudinary.com/${CLOUD_NAME}/video/upload/so_0,w_1280,f_jpg,q_auto:good/${cleanId}.jpg`;
+}
+
+/**
+ * Client-Side Pre-Upload Validation for Hero Videos:
+ * - Accepts .mp4, .webm, and .mov
+ * - Max size 35 MB
+ * - Rejects clips longer than 10.5 seconds with clear message
+ */
+export async function validateAndInspectVideo(file: File): Promise<VideoMetadata> {
+  const validMimes = ['video/mp4', 'video/webm', 'video/quicktime'];
+  const ext = file.name.split('.').pop()?.toLowerCase();
+  const validExts = ['mp4', 'webm', 'mov'];
+
+  const isMimeValid = validMimes.includes(file.type);
+  const isExtValid = ext ? validExts.includes(ext) : false;
+
+  if (!isMimeValid && !isExtValid) {
+    throw new Error('Please select a valid video file (.mp4, .webm, or .mov).');
+  }
+
+  const MAX_SIZE_BYTES = 35 * 1024 * 1024; // 35 MB
+  if (file.size > MAX_SIZE_BYTES) {
+    throw new Error(`Video file is too large (${formatBytes(file.size)}). Hero videos must be 35 MB or less.`);
+  }
+
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    const objectUrl = URL.createObjectURL(file);
+
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(objectUrl);
+      const duration = video.duration;
+      const width = video.videoWidth || 1920;
+      const height = video.videoHeight || 1080;
+
+      if (duration > 10.5) {
+        reject(new Error('Hero videos must be 10 seconds or less.'));
+        return;
+      }
+
+      resolve({
+        duration,
+        width,
+        height,
+        size: file.size,
+        format: file.type || ext || 'video/mp4',
+      });
+    };
+
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not inspect video file. Please ensure it is a valid MP4, WebM, or MOV clip.'));
+    };
+
+    video.src = objectUrl;
+  });
+}
+
+/**
+ * Uploads a short HD hero video to Cloudinary:
+ * 1. Client-side pre-validation (< 10.5s, <= 35MB, .mp4/.webm/.mov)
+ * 2. Uploads to Cloudinary video endpoint
+ * 3. Returns least-compression HD delivery URL & auto-derived so_0 poster frame URL
+ */
+export async function uploadVideoToCloudinary(
+  file: File,
+  onProgress?: UploadProgressCallback
+): Promise<VideoUploadResult> {
+  if (!CLOUD_NAME) {
+    throw new Error('Cloudinary Cloud Name is not configured. Please set VITE_CLOUDINARY_CLOUD_NAME.');
+  }
+
+  // Pre-validate locally
+  const meta = await validateAndInspectVideo(file);
+
+  const videoPreset =
+    import.meta.env.VITE_CLOUDINARY_VIDEO_PRESET ||
+    UPLOAD_PRESET;
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', videoPreset);
+  formData.append('folder', 'updatebro/banners');
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`);
+
+    if (onProgress && xhr.upload) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          onProgress(percent);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          const rawPublicId: string = data.public_id || '';
+          const cleanPublicId = rawPublicId.replace(/\.[^/.]+$/, '');
+
+          const videoUrl = buildVideoDeliveryUrl(cleanPublicId);
+          const posterUrl = buildVideoPosterUrl(cleanPublicId);
+
+          resolve({
+            videoUrl,
+            posterUrl,
+            publicId: cleanPublicId,
+            duration: Number(data.duration) || meta.duration,
+            width: Number(data.width) || meta.width,
+            height: Number(data.height) || meta.height,
+            bytes: Number(data.bytes) || file.size,
+          });
+        } catch {
+          reject(new Error('Failed to parse Cloudinary response for video'));
+        }
+      } else {
+        try {
+          const errData = JSON.parse(xhr.responseText);
+          const message = errData?.error?.message || `Video upload failed with HTTP ${xhr.status}`;
+          reject(new Error(message));
+        } catch {
+          reject(new Error(`Video upload failed with HTTP ${xhr.status}`));
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Network error occurred during video upload'));
+    };
+
+    xhr.send(formData);
+  });
+}
