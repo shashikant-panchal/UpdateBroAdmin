@@ -170,9 +170,12 @@ export const OrdersManager: React.FC = () => {
   const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
       setIsUpdating(true);
-      const updates: { status: OrderStatus; tracking_note?: string } = { status: newStatus };
+      const updates: { status: OrderStatus; tracking_note?: string; payment_status?: string } = { status: newStatus };
       if (trackingNoteInput.trim()) {
         updates.tracking_note = trackingNoteInput.trim();
+      }
+      if (newStatus === 'Delivered') {
+        updates.payment_status = 'Paid';
       }
 
       const { data, error } = await supabase
@@ -184,10 +187,10 @@ export const OrdersManager: React.FC = () => {
 
       if (!error && data) {
         setOrders((prev) =>
-          prev.map((o) => (o.id === orderId ? { ...o, status: newStatus, tracking_note: data.tracking_note } : o))
+          prev.map((o) => (o.id === orderId ? { ...o, ...data } : o))
         );
         if (selectedOrder?.id === orderId) {
-          setSelectedOrder((prev) => (prev ? { ...prev, status: newStatus, tracking_note: data.tracking_note } : null));
+          setSelectedOrder((prev) => (prev ? { ...prev, ...data } : null));
         }
         setTrackingNoteInput('');
         notifySuccess(
@@ -404,12 +407,17 @@ export const OrdersManager: React.FC = () => {
                       {ord.payment_method === 'ONLINE' ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-500 whitespace-nowrap">
                           <CreditCard className="h-3 w-3" />
-                          <span>ONLINE</span>
+                          <span>Paid (ONLINE)</span>
+                        </span>
+                      ) : ord.status === 'Delivered' || ord.payment_status?.toLowerCase() === 'paid' ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-500 whitespace-nowrap">
+                          <Truck className="h-3 w-3" />
+                          <span>Paid (COD)</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-1 text-[11px] font-bold text-amber-500 whitespace-nowrap">
                           <Truck className="h-3 w-3" />
-                          <span>COD</span>
+                          <span>Pending (COD)</span>
                         </span>
                       )}
                     </td>
@@ -591,11 +599,11 @@ export const OrdersManager: React.FC = () => {
                 <div className="rounded-2xl border border-line bg-cloud/40 p-4 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-muted">
-                      Payment Method
+                      Payment Status
                     </span>
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider ${
-                        selectedOrder.payment_method === 'ONLINE'
+                        selectedOrder.payment_method === 'ONLINE' || selectedOrder.status === 'Delivered' || selectedOrder.payment_status?.toLowerCase() === 'paid'
                           ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
                           : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
                       }`}
@@ -603,12 +611,17 @@ export const OrdersManager: React.FC = () => {
                       {selectedOrder.payment_method === 'ONLINE' ? (
                         <>
                           <CreditCard className="h-3 w-3" />
-                          <span>ONLINE (Paid)</span>
+                          <span>Paid (ONLINE)</span>
+                        </>
+                      ) : selectedOrder.status === 'Delivered' || selectedOrder.payment_status?.toLowerCase() === 'paid' ? (
+                        <>
+                          <Truck className="h-3 w-3" />
+                          <span>Paid (COD)</span>
                         </>
                       ) : (
                         <>
                           <Truck className="h-3 w-3" />
-                          <span>Cash on Delivery</span>
+                          <span>Pending (COD)</span>
                         </>
                       )}
                     </span>

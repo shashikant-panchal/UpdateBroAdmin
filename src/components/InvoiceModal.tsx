@@ -328,8 +328,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
         </div>
         <div class="row-meta">
           <span style="color: #64748b;">Payment Status:</span>
-          <span class="status-paid">${
-            order.payment_status || (order.payment_method === 'ONLINE' ? 'PAID' : 'PENDING ON DOORSTEP')
+          <span class="status-paid" style="color: ${
+            order.payment_method === 'ONLINE' || order.status === 'Delivered' || order.payment_status?.toLowerCase() === 'paid'
+              ? '#15803d'
+              : '#d97706'
+          };">${
+            order.payment_method === 'ONLINE' || order.status === 'Delivered' || order.payment_status?.toLowerCase() === 'paid'
+              ? (order.payment_method === 'ONLINE' ? 'PAID (ONLINE)' : 'PAID (COD)')
+              : 'PENDING (COD)'
           }</span>
         </div>
         ${
@@ -617,8 +623,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
                   </div>
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-slate-600">Payment Status:</span>
-                    <span className="font-mono font-bold text-emerald-700 uppercase">
-                      {order.payment_status || (order.payment_method === 'ONLINE' ? 'Paid' : 'Pending on Doorstep')}
+                    <span className={`font-mono font-bold uppercase ${
+                      order.payment_method === 'ONLINE' || order.status === 'Delivered' || order.payment_status?.toLowerCase() === 'paid'
+                        ? 'text-emerald-700'
+                        : 'text-amber-600'
+                    }`}>
+                      {order.payment_method === 'ONLINE' || order.status === 'Delivered' || order.payment_status?.toLowerCase() === 'paid'
+                        ? (order.payment_method === 'ONLINE' ? 'Paid (ONLINE)' : 'Paid (COD)')
+                        : 'Pending (COD)'}
                     </span>
                   </div>
                   {order.razorpay_payment_id && (
