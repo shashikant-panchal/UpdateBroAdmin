@@ -267,7 +267,7 @@ export const ProductsManager: React.FC = () => {
         price: Number(formPrice),
         compare_at_price: formComparePrice !== '' ? Number(formComparePrice) : null,
         category_id: formCategoryId || null,
-        images: formImages.filter((img) => img.trim() !== ''),
+        images: formImages.filter((img) => img.trim() !== '').slice(0, 4),
         highlights: cleanHighlights,
         specs: cleanSpecs,
         warranty: canonicalWarranty,
@@ -983,11 +983,11 @@ export const ProductsManager: React.FC = () => {
                 <div className="pt-2 border-t border-line">
                   <CloudinaryUploader
                     images={formImages}
-                    onChange={setFormImages}
+                    onChange={(imgs) => setFormImages(imgs.slice(0, 4))}
                     multiple={true}
-                    maxFiles={6}
+                    maxFiles={4}
                     preset="product"
-                    label="Product Photos & Gallery"
+                    label="Product Photos & Gallery (Max 4)"
                   />
                 </div>
 

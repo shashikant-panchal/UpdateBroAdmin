@@ -46,7 +46,7 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
   images,
   onChange,
   multiple = true,
-  maxFiles = 6,
+  maxFiles = 4,
   label = 'Product Images',
   preset = 'product',
   mediaType = 'image',
@@ -120,7 +120,7 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
     if (!multiple) {
       fileList.splice(1);
     } else if (images.length + fileList.length > maxFiles) {
-      setErrorMsg(`Maximum ${maxFiles} images allowed.`);
+      setErrorMsg(`Maximum ${maxFiles} images allowed. You can only add ${Math.max(0, maxFiles - images.length)} more.`);
       return;
     }
 
@@ -228,7 +228,11 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
       }
     } else {
       if (multiple) {
-        onChange([...images, url]);
+        if (images.length >= maxFiles) {
+          setErrorMsg(`Maximum ${maxFiles} images allowed.`);
+          return;
+        }
+        onChange([...images, url].slice(0, maxFiles));
       } else {
         onChange([url]);
       }
@@ -246,7 +250,20 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-bold text-muted uppercase tracking-wider">{label}</label>
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-bold text-muted uppercase tracking-wider">{label}</label>
+          {!isVideoMode && multiple && (
+            <span
+              className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                images.length >= maxFiles
+                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                  : 'bg-cloud text-muted border-line'
+              }`}
+            >
+              {images.length}/{maxFiles}
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => setShowManualInput(!showManualInput)}
@@ -419,7 +436,7 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
                   Drag &amp; drop images here, or <span className="text-accent underline">browse</span>
                 </p>
                 <p className="mt-1.5 text-[11px] text-muted">
-                  Supports JPG, PNG, WebP • Max 10MB per file
+                  Supports JPG, PNG, WebP • Max {maxFiles} images (Max 10MB per file)
                 </p>
               </>
             )}
