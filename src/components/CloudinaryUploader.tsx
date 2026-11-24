@@ -135,8 +135,8 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
       preset === 'banner'
         ? { maxWidth: 1920, maxHeight: 1080, quality: 0.82 }
         : preset === 'category'
-        ? { maxWidth: 800, maxHeight: 800, quality: 0.80 }
-        : { maxWidth: 1200, maxHeight: 1200, quality: 0.78 };
+          ? { maxWidth: 800, maxHeight: 800, quality: 0.80 }
+          : { maxWidth: 1200, maxHeight: 1200, quality: 0.78 };
 
     try {
       for (let i = 0; i < fileList.length; i++) {
@@ -254,11 +254,10 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
           <label className="text-xs font-bold text-muted uppercase tracking-wider">{label}</label>
           {!isVideoMode && multiple && (
             <span
-              className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-                images.length >= maxFiles
+              className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${images.length >= maxFiles
                   ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
                   : 'bg-cloud text-muted border-line'
-              }`}
+                }`}
             >
               {images.length}/{maxFiles}
             </span>
@@ -383,11 +382,10 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`relative cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition ${
-            isDragging
+          className={`relative cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition ${isDragging
               ? 'border-accent bg-accent-soft/30'
               : 'border-line bg-cloud/30 hover:border-accent/60 hover:bg-cloud/50'
-          }`}
+            }`}
         >
           <input
             ref={fileInputRef}
