@@ -274,11 +274,12 @@ export interface VideoUploadResult {
 
 /**
  * Builds the least-compression HD delivery URL for videos:
- * Uses q_auto:best, vc_h264, and w_1280,c_limit for razor-sharp playback without 4K overhead.
+ * Uses q_auto:good, vc_h264, br_750k, and w_1280,c_limit for crystal-clear 720p HD playback
+ * while strictly capping bandwidth in KBs / low MBs to protect Cloudinary free tier credits.
  */
 export function buildVideoDeliveryUrl(publicId: string): string {
   const cleanId = publicId.replace(/\.[^/.]+$/, '');
-  return `https://res.cloudinary.com/${CLOUD_NAME}/video/upload/w_1280,c_limit,q_auto:best,vc_h264/${cleanId}.mp4`;
+  return `https://res.cloudinary.com/${CLOUD_NAME}/video/upload/w_1280,c_limit,q_auto:good,vc_h264,br_750k/${cleanId}.mp4`;
 }
 
 /**
@@ -292,8 +293,8 @@ export function buildVideoPosterUrl(publicId: string): string {
 /**
  * Client-Side Pre-Upload Validation for Hero Videos:
  * - Accepts .mp4, .webm, and .mov
- * - Max size 35 MB
- * - Rejects clips longer than 10.5 seconds with clear message
+ * - Max size 50 MB
+ * - Rejects clips longer than 30.5 seconds with clear message
  */
 export async function validateAndInspectVideo(file: File): Promise<VideoMetadata> {
   const validMimes = ['video/mp4', 'video/webm', 'video/quicktime'];
@@ -307,9 +308,9 @@ export async function validateAndInspectVideo(file: File): Promise<VideoMetadata
     throw new Error('Please select a valid video file (.mp4, .webm, or .mov).');
   }
 
-  const MAX_SIZE_BYTES = 35 * 1024 * 1024; // 35 MB
+  const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
   if (file.size > MAX_SIZE_BYTES) {
-    throw new Error(`Video file is too large (${formatBytes(file.size)}). Hero videos must be 35 MB or less.`);
+    throw new Error(`Video file is too large (${formatBytes(file.size)}). Hero videos must be 50 MB or less.`);
   }
 
   return new Promise((resolve, reject) => {
@@ -323,8 +324,8 @@ export async function validateAndInspectVideo(file: File): Promise<VideoMetadata
       const width = video.videoWidth || 1920;
       const height = video.videoHeight || 1080;
 
-      if (duration > 10.5) {
-        reject(new Error('Hero videos must be 10 seconds or less.'));
+      if (duration > 30.5) {
+        reject(new Error(`Hero videos must be 30 seconds or less (selected clip is ${Math.round(duration)}s).`));
         return;
       }
 
@@ -348,7 +349,7 @@ export async function validateAndInspectVideo(file: File): Promise<VideoMetadata
 
 /**
  * Uploads a short HD hero video to Cloudinary:
- * 1. Client-side pre-validation (< 10.5s, <= 35MB, .mp4/.webm/.mov)
+ * 1. Client-side pre-validation (< 30.5s, <= 50MB, .mp4/.webm/.mov)
  * 2. Uploads to Cloudinary video endpoint
  * 3. Returns least-compression HD delivery URL & auto-derived so_0 poster frame URL
  */

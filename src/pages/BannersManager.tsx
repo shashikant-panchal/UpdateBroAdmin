@@ -39,6 +39,7 @@ export const BannersManager: React.FC = () => {
   const [formIsActive, setFormIsActive] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [videoDurations, setVideoDurations] = useState<Record<string, number>>({});
 
   const fetchBanners = async () => {
     if (!isSupabaseConfigured) {
@@ -119,7 +120,7 @@ export const BannersManager: React.FC = () => {
 
     if (formMediaType === 'video') {
       if (!formVideoData?.videoUrl) {
-        setErrorMsg('Please upload a short HD video clip (≤ 10s) or provide a video URL.');
+        setErrorMsg('Please upload an HD video clip (≤ 30s) or provide a video URL.');
         return;
       }
     } else {
@@ -230,7 +231,7 @@ export const BannersManager: React.FC = () => {
         <div>
           <h1 className="font-display text-2xl font-black text-ink">Hero Banners Manager</h1>
           <p className="text-xs text-muted mt-1">
-            Control widescreen homepage carousel slides, high-clarity looping videos (≤ 10s), and CTAs.
+            Control widescreen homepage carousel slides, high-clarity videos (≤ 30s), and CTAs.
           </p>
         </div>
 
@@ -292,6 +293,12 @@ export const BannersManager: React.FC = () => {
                       loop
                       playsInline
                       preload="metadata"
+                      onLoadedMetadata={(e) => {
+                        const d = e.currentTarget.duration;
+                        if (Number.isFinite(d) && d > 0 && b.id) {
+                          setVideoDurations((prev) => ({ ...prev, [b.id]: d }));
+                        }
+                      }}
                       className="h-full w-full object-cover"
                     />
                   ) : (
@@ -311,6 +318,14 @@ export const BannersManager: React.FC = () => {
                           <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
                         </span>
                         <span>HD VIDEO</span>
+                        {videoDurations[b.id] ? (
+                          <>
+                            <span className="text-amber-400/50">•</span>
+                            <span className="font-mono text-white/90">
+                              {Math.round(videoDurations[b.id])}s
+                            </span>
+                          </>
+                        ) : null}
                       </span>
                     ) : (
                       <span className="flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/80 border border-white/20 backdrop-blur-md">
@@ -390,7 +405,7 @@ export const BannersManager: React.FC = () => {
                   </h3>
                   {formMediaType === 'video' && (
                     <span className="rounded-full bg-amber-400/15 border border-amber-400/30 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-500">
-                      HD Video (≤ 10s)
+                      HD Video (≤ 30s)
                     </span>
                   )}
                 </div>
@@ -439,7 +454,7 @@ export const BannersManager: React.FC = () => {
                       }`}
                     >
                       <Video className="h-3.5 w-3.5" />
-                      <span>Video Banner (≤ 10s HD)</span>
+                      <span>Video Banner (≤ 30s HD)</span>
                     </button>
                   </div>
                 </div>
@@ -518,7 +533,7 @@ export const BannersManager: React.FC = () => {
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-xs font-bold text-muted uppercase tracking-wider flex items-center gap-1.5">
                           <Film className="h-3.5 w-3.5 text-accent" />
-                          <span>HD Video Banner Clip (≤ 10s)</span>
+                          <span>HD Video Banner Clip (≤ 30s)</span>
                         </label>
                       </div>
                       <CloudinaryUploader
@@ -617,6 +632,14 @@ export const BannersManager: React.FC = () => {
                             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400" />
                           </span>
                           <span>HD VIDEO</span>
+                          {formVideoData?.duration ? (
+                            <>
+                              <span className="text-amber-400/50">•</span>
+                              <span className="font-mono text-white/90">
+                                {Math.round(formVideoData.duration)}s
+                              </span>
+                            </>
+                          ) : null}
                         </div>
                       )}
 

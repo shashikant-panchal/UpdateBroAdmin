@@ -70,7 +70,7 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
     setUploadSuccess(false);
 
     try {
-      // 1. Client-Side Pre-Upload Validation (Under 10.5s & <= 35MB)
+      // 1. Client-Side Pre-Upload Validation (Under 30.5s & <= 50MB)
       const meta = await validateAndInspectVideo(file);
       setDetectedVideoMeta(meta);
 
@@ -421,10 +421,10 @@ export const CloudinaryUploader: React.FC<CloudinaryUploaderProps> = ({
                   <Film className="h-6 w-6" />
                 </div>
                 <p className="text-xs font-bold text-ink">
-                  Drag &amp; drop short HD video clip (≤ 10s), or <span className="text-accent underline">browse</span>
+                  Drag &amp; drop HD video clip (≤ 30s), or <span className="text-accent underline">browse</span>
                 </p>
                 <p className="mt-1.5 text-[11px] text-muted">
-                  Supports MP4, WebM, MOV • Max 10.5 seconds • Max 35 MB
+                  Supports MP4, WebM, MOV • Max 30 seconds • Max 50 MB
                 </p>
               </>
             ) : (
