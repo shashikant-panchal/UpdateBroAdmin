@@ -259,7 +259,67 @@ create trigger tr_link_past_orders
   after insert or update of phone on public.profiles
   for each row execute function public.link_past_orders_by_phone();
 
--- 11. STORE SETTINGS SINGLETON TABLE
+-- 11. CUSTOMER ORDER CANCELLATION RPC
+create or replace function public.cancel_customer_order(
+  p_order_id uuid,
+  p_reason text default 'Cancelled by customer'
+)
+returns public.orders
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_order public.orders%rowtype;
+  v_user_id uuid := (select auth.uid());
+  v_user_phone text;
+  v_is_authorized boolean := false;
+  v_clean_reason text;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required to cancel order';
+  end if;
+
+  select phone into v_user_phone from public.profiles where id = v_user_id;
+
+  select * into v_order from public.orders where id = p_order_id for update;
+  if not found then
+    raise exception 'Order not found';
+  end if;
+
+  -- Check ownership or admin
+  if public.is_admin()
+     or v_order.user_id = v_user_id
+     or (v_user_phone is not null and v_order.customer_phone = v_user_phone) then
+    v_is_authorized := true;
+  end if;
+
+  if not v_is_authorized then
+    raise exception 'You do not have permission to cancel this order';
+  end if;
+
+  -- Check cancellation eligibility
+  if v_order.status not in ('Pending', 'Confirmed', 'Processing') then
+    raise exception 'Orders in % status cannot be cancelled', v_order.status;
+  end if;
+
+  v_clean_reason := coalesce(nullif(trim(p_reason), ''), 'Cancelled by customer');
+
+  update public.orders
+  set
+    status = 'Cancelled',
+    tracking_note = v_clean_reason,
+    updated_at = now()
+  where id = p_order_id
+  returning * into v_order;
+
+  return v_order;
+end;
+$$;
+
+grant execute on function public.cancel_customer_order(uuid, text) to authenticated;
+
+-- 12. STORE SETTINGS SINGLETON TABLE
 create table if not exists public.store_settings (
   id int primary key default 1 check (id = 1),
   announcement_text text not null default '',
@@ -357,11 +417,30 @@ create policy "Anyone can insert an order"
   with check ( true );
 
 drop policy if exists "Only admin can update or delete orders" on public.orders;
-create policy "Only admin can update or delete orders"
+drop policy if exists "Admin or owner can update order" on public.orders;
+create policy "Admin or owner can update order"
   on public.orders for update
   to authenticated
-  using ( public.is_admin() )
-  with check ( public.is_admin() );
+  using (
+    public.is_admin()
+    or (
+      (
+        (user_id is not null and (select auth.uid()) = user_id)
+        or (customer_phone in (select phone from public.profiles where id = (select auth.uid())))
+      )
+      and status in ('Pending', 'Confirmed', 'Processing')
+    )
+  )
+  with check (
+    public.is_admin()
+    or (
+      (
+        (user_id is not null and (select auth.uid()) = user_id)
+        or (customer_phone in (select phone from public.profiles where id = (select auth.uid())))
+      )
+      and status = 'Cancelled'
+    )
+  );
 
 drop policy if exists "Only admin can delete orders" on public.orders;
 create policy "Only admin can delete orders"
