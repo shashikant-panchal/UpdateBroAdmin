@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   ShoppingBag,
   Package,
+  MessageSquare,
   Layers,
   Image as ImageIcon,
   Settings,
@@ -22,7 +23,7 @@ import { useTheme } from '../context/ThemeContext';
 import { BrandLogo } from '../components/BrandLogo';
 import { supabase } from '../lib/supabase';
 
-export type AdminTab = 'overview' | 'orders' | 'products' | 'widgets' | 'custom-widget' | 'categories' | 'banners' | 'users' | 'settings';
+export type AdminTab = 'overview' | 'orders' | 'products' | 'reviews' | 'widgets' | 'custom-widget' | 'categories' | 'banners' | 'users' | 'settings';
 
 interface AdminLayoutProps {
   currentTab: AdminTab;
@@ -93,6 +94,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       id: 'products' as AdminTab,
       label: 'Products',
       icon: Package,
+      badge: null,
+    },
+    {
+      id: 'reviews' as AdminTab,
+      label: 'Reviews',
+      icon: MessageSquare,
       badge: null,
     },
     {

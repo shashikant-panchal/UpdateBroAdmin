@@ -136,6 +136,7 @@ create table if not exists public.products (
   images text[] not null default '{}'::text[],
   highlights text[] not null default '{}'::text[],
   in_stock boolean not null default true,
+  stock_quantity int not null default 50,
   is_featured boolean not null default false,
   is_best_seller boolean not null default false,
   is_new_arrival boolean not null default false,
@@ -147,6 +148,7 @@ create table if not exists public.products (
 alter table public.products add column if not exists is_best_seller boolean not null default false;
 alter table public.products add column if not exists is_new_arrival boolean not null default false;
 alter table public.products add column if not exists is_combo boolean not null default false;
+alter table public.products add column if not exists stock_quantity int not null default 50;
 
 create index if not exists idx_products_category on public.products(category_id);
 create index if not exists idx_products_featured on public.products(is_featured);
@@ -195,7 +197,31 @@ create table if not exists public.order_items (
 
 create index if not exists idx_order_items_order_id on public.order_items(order_id);
 
--- 9. ORDER STATUS HISTORY & TIMESTAMPS TRIGGER
+-- 9. PRODUCT REVIEWS TABLE
+create table if not exists public.product_reviews (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid not null references public.products(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete set null,
+  order_id uuid references public.orders(id) on delete set null,
+  customer_name text not null,
+  customer_phone text,
+  rating int not null check (rating >= 1 and rating <= 5),
+  title text,
+  comment text not null,
+  verified_purchase boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table public.product_reviews add column if not exists order_id uuid references public.orders(id) on delete set null;
+alter table public.product_reviews add column if not exists customer_phone text;
+alter table public.product_reviews add column if not exists verified_purchase boolean not null default true;
+
+create index if not exists idx_product_reviews_product_id on public.product_reviews(product_id);
+create index if not exists idx_product_reviews_user_id on public.product_reviews(user_id);
+create index if not exists idx_product_reviews_order_id on public.product_reviews(order_id);
+create index if not exists idx_product_reviews_created on public.product_reviews(created_at desc);
+
+-- 10. ORDER STATUS HISTORY & TIMESTAMPS TRIGGER
 create or replace function public.handle_order_status_update()
 returns trigger
 language plpgsql
@@ -492,6 +518,36 @@ create policy "Store settings are editable only by admin"
   using ( public.is_admin() )
   with check ( public.is_admin() );
 
+-- PRODUCT REVIEWS POLICIES
+alter table public.product_reviews enable row level security;
+
+drop policy if exists "Reviews are publicly viewable" on public.product_reviews;
+create policy "Reviews are publicly viewable"
+  on public.product_reviews for select
+  to public
+  using ( true );
+
+drop policy if exists "Authenticated users can submit reviews" on public.product_reviews;
+create policy "Authenticated users can submit reviews"
+  on public.product_reviews for insert
+  to authenticated
+  with check (
+    public.is_admin() or (select auth.uid()) = user_id
+  );
+
+drop policy if exists "Admins can delete reviews" on public.product_reviews;
+create policy "Admins can delete reviews"
+  on public.product_reviews for delete
+  to authenticated
+  using ( public.is_admin() );
+
+drop policy if exists "Admins or authors can update reviews" on public.product_reviews;
+create policy "Admins or authors can update reviews"
+  on public.product_reviews for update
+  to authenticated
+  using ( public.is_admin() or (select auth.uid()) = user_id )
+  with check ( public.is_admin() or (select auth.uid()) = user_id );
+
 -- 13. REALTIME PUBLICATION SETUP
 do $$
 begin
@@ -501,6 +557,7 @@ begin
     alter publication supabase_realtime add table public.categories;
     alter publication supabase_realtime add table public.banners;
     alter publication supabase_realtime add table public.store_settings;
+    alter publication supabase_realtime add table public.product_reviews;
   end if;
 exception when others then
   -- ignore error if tables are already in publication

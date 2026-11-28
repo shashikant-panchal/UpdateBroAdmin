@@ -7,6 +7,7 @@ import { AdminLayout, type AdminTab } from './layouts/AdminLayout';
 import { DashboardOverview } from './pages/DashboardOverview';
 import { OrdersManager } from './pages/OrdersManager';
 import { ProductsManager } from './pages/ProductsManager';
+import { ReviewsManager } from './pages/ReviewsManager';
 import { WidgetsManager } from './pages/WidgetsManager';
 import { CustomWidgetManager } from './pages/CustomWidgetManager';
 import { CategoriesManager } from './pages/CategoriesManager';
@@ -20,6 +21,7 @@ const AdminApp: React.FC = () => {
     const path = window.location.pathname.toLowerCase();
     if (path.includes('orders')) return 'orders';
     if (path.includes('products')) return 'products';
+    if (path.includes('reviews')) return 'reviews';
     if (path.includes('custom-widget')) return 'custom-widget';
     if (path.includes('widgets') || path.includes('sections')) return 'widgets';
     if (path.includes('categories')) return 'categories';
@@ -44,6 +46,7 @@ const AdminApp: React.FC = () => {
       const path = window.location.pathname.toLowerCase();
       if (path.includes('orders')) setCurrentTab('orders');
       else if (path.includes('products')) setCurrentTab('products');
+      else if (path.includes('reviews')) setCurrentTab('reviews');
       else if (path.includes('custom-widget')) setCurrentTab('custom-widget');
       else if (path.includes('widgets') || path.includes('sections')) setCurrentTab('widgets');
       else if (path.includes('categories')) setCurrentTab('categories');
@@ -104,6 +107,7 @@ const AdminApp: React.FC = () => {
         )}
         {currentTab === 'orders' && <OrdersManager />}
         {currentTab === 'products' && <ProductsManager />}
+        {currentTab === 'reviews' && <ReviewsManager />}
         {currentTab === 'widgets' && <WidgetsManager />}
         {currentTab === 'custom-widget' && <CustomWidgetManager />}
         {currentTab === 'categories' && <CategoriesManager />}

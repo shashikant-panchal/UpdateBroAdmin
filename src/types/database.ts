@@ -66,10 +66,27 @@ export interface DbProduct {
   warranty?: string | null;
   in_box?: string[] | null;
   in_stock: boolean;
+  stock_quantity?: number | null;
   is_featured: boolean;
   is_best_seller: boolean;
   is_new_arrival: boolean;
   is_combo: boolean;
+  rating?: number | null;
+  reviews_count?: number | null;
+  created_at: string;
+}
+
+export interface DbProductReview {
+  id: string;
+  product_id: string;
+  user_id?: string | null;
+  order_id?: string | null;
+  customer_name: string;
+  customer_phone?: string | null;
+  rating: number;
+  title?: string | null;
+  comment: string;
+  verified_purchase: boolean;
   created_at: string;
 }
 

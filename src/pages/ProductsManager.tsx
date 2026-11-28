@@ -45,6 +45,7 @@ export const ProductsManager: React.FC = () => {
   const [formHighlights, setFormHighlights] = useState<string[]>(['']);
   const [formWarranty, setFormWarranty] = useState('1 Year Official Replacement Warranty');
   const [formSpecs, setFormSpecs] = useState<{ label: string; value: string }[]>([]);
+  const [formStockQuantity, setFormStockQuantity] = useState<number | ''>(50);
   const [formInStock, setFormInStock] = useState(true);
   const [formIsFeatured, setFormIsFeatured] = useState(false);
   const [formIsBestSeller, setFormIsBestSeller] = useState(false);
@@ -117,6 +118,7 @@ export const ProductsManager: React.FC = () => {
       { label: 'Fast Charging', value: '10 Mins = 5 Hours' },
       { label: 'Water Resistance', value: 'IPX5' },
     ]);
+    setFormStockQuantity(50);
     setFormInStock(true);
     setFormIsFeatured(false);
     setFormIsBestSeller(false);
@@ -136,6 +138,13 @@ export const ProductsManager: React.FC = () => {
     setFormComparePrice(p.compare_at_price || '');
     setFormCategoryId(p.category_id || '');
     setFormImages(p.images || []);
+    setFormStockQuantity(
+      typeof p.stock_quantity === 'number'
+        ? p.stock_quantity
+        : p.in_stock
+        ? 50
+        : 0
+    );
 
     // Cleanly extract canonical warranty without duplication
     let detectedWarranty = p.warranty?.trim() || '';
@@ -258,6 +267,7 @@ export const ProductsManager: React.FC = () => {
       );
 
       const canonicalWarranty = formWarranty.trim() || '1 Year Official Replacement Warranty';
+      const parsedStock = formStockQuantity === '' ? 0 : Number(formStockQuantity);
 
       const payload: Record<string, unknown> = {
         name: formName.trim(),
@@ -271,7 +281,8 @@ export const ProductsManager: React.FC = () => {
         highlights: cleanHighlights,
         specs: cleanSpecs,
         warranty: canonicalWarranty,
-        in_stock: formInStock,
+        in_stock: formInStock && parsedStock > 0,
+        stock_quantity: parsedStock,
         is_featured: formIsFeatured,
         is_best_seller: formIsBestSeller,
         is_new_arrival: formIsNewArrival,
@@ -290,17 +301,19 @@ export const ProductsManager: React.FC = () => {
         saveErr = error;
       }
 
-      // If database is missing optional new columns (sku, warranty, specs), retry gracefully
+      // If database is missing optional new columns (sku, warranty, specs, stock_quantity), retry gracefully
       if (
         saveErr &&
         (saveErr.message?.includes('sku') ||
           saveErr.message?.includes('warranty') ||
-          saveErr.message?.includes('specs'))
+          saveErr.message?.includes('specs') ||
+          saveErr.message?.includes('stock_quantity'))
       ) {
         const safePayload = { ...payload };
         delete safePayload.sku;
         delete safePayload.warranty;
         delete safePayload.specs;
+        delete safePayload.stock_quantity;
 
         // Embed single canonical warranty into highlights without duplicating
         const fallbackHighlights = cleanHighlights.filter((h) => !/warranty/i.test(h));
@@ -348,24 +361,41 @@ export const ProductsManager: React.FC = () => {
 
   const handleToggleStock = async (product: DbProduct) => {
     const newStock = !product.in_stock;
+    const currentQty = typeof product.stock_quantity === 'number' ? product.stock_quantity : (product.in_stock ? 50 : 0);
+    const newQty = newStock ? (currentQty > 0 ? currentQty : 50) : 0;
+
     setProducts((prev) =>
-      prev.map((p) => (p.id === product.id ? { ...p, in_stock: newStock } : p))
+      prev.map((p) =>
+        p.id === product.id ? { ...p, in_stock: newStock, stock_quantity: newQty } : p
+      )
     );
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('products')
-        .update({ in_stock: newStock })
+        .update({ in_stock: newStock, stock_quantity: newQty })
         .eq('id', product.id);
 
+      if (error && error.message?.includes('stock_quantity')) {
+        // Fallback if column not migrated
+        await supabase
+          .from('products')
+          .update({ in_stock: newStock })
+          .eq('id', product.id);
+      }
+
       notifyInfo(
-        newStock ? 'Marked In Stock' : 'Marked Out of Stock',
+        newStock ? `Marked In Stock (${newQty} units)` : 'Marked Out of Stock',
         `"${product.name}" inventory status updated.`
       );
       notifyStorefrontSync();
     } catch {
       setProducts((prev) =>
-        prev.map((p) => (p.id === product.id ? { ...p, in_stock: product.in_stock } : p))
+        prev.map((p) =>
+          p.id === product.id
+            ? { ...p, in_stock: product.in_stock, stock_quantity: product.stock_quantity }
+            : p
+        )
       );
       notifyError('Update Failed', 'Could not update inventory status.');
     }
@@ -610,7 +640,7 @@ export const ProductsManager: React.FC = () => {
                 <th className="py-3.5 px-4">Price / MRP</th>
                 <th className="py-3.5 px-4">Category</th>
                 <th className="py-3.5 px-4">Storefront Badges &amp; Widgets</th>
-                <th className="py-3.5 px-4 text-center">In Stock</th>
+                <th className="py-3.5 px-4 text-center">Stock &amp; Units</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -780,19 +810,47 @@ export const ProductsManager: React.FC = () => {
                         </div>
                       </td>
                       <td className="py-3.5 px-4 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStock(p)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                            p.in_stock ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'
-                          }`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                              p.in_stock ? 'translate-x-6' : 'translate-x-1'
+                        <div className="flex flex-col items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStock(p)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                              p.in_stock && (p.stock_quantity === undefined || p.stock_quantity === null || p.stock_quantity > 0)
+                                ? 'bg-emerald-500'
+                                : 'bg-gray-300 dark:bg-gray-700'
                             }`}
-                          />
-                        </button>
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                                p.in_stock && (p.stock_quantity === undefined || p.stock_quantity === null || p.stock_quantity > 0)
+                                  ? 'translate-x-6'
+                                  : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                          {(() => {
+                            const qty = typeof p.stock_quantity === 'number' ? p.stock_quantity : (p.in_stock ? 50 : 0);
+                            if (!p.in_stock || qty <= 0) {
+                              return (
+                                <span className="inline-block rounded-md bg-rose-500/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-rose-500">
+                                  0 units (Out)
+                                </span>
+                              );
+                            }
+                            if (qty <= 10) {
+                              return (
+                                <span className="inline-block rounded-md bg-amber-500/15 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                                  {qty} units (Low)
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="inline-block rounded-md bg-emerald-500/15 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                {qty} units
+                              </span>
+                            );
+                          })()}
+                        </div>
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
@@ -920,7 +978,7 @@ export const ProductsManager: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-muted mb-1.5 uppercase tracking-wider">
                       Category
@@ -976,6 +1034,39 @@ export const ProductsManager: React.FC = () => {
                       }
                       placeholder="2999"
                       className="h-11 w-full rounded-2xl border border-line bg-cloud/30 px-3.5 font-mono text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-muted uppercase tracking-wider">
+                        Stock (Units) *
+                      </label>
+                      <span className={`text-[10px] font-bold ${
+                        (formStockQuantity === '' ? 0 : Number(formStockQuantity)) > 0
+                          ? 'text-emerald-500'
+                          : 'text-rose-500'
+                      }`}>
+                        {(formStockQuantity === '' ? 0 : Number(formStockQuantity)) > 0
+                          ? `${formStockQuantity} in stock`
+                          : 'Out of stock'}
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      step="1"
+                      value={formStockQuantity}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10));
+                        setFormStockQuantity(val);
+                        if (typeof val === 'number') {
+                          setFormInStock(val > 0);
+                        }
+                      }}
+                      placeholder="50"
+                      className="h-11 w-full rounded-2xl border border-line bg-cloud/30 px-3.5 font-mono text-xs font-bold text-ink placeholder:text-muted focus:border-accent focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1183,7 +1274,11 @@ export const ProductsManager: React.FC = () => {
                       />
                       <div>
                         <span className="text-xs font-bold text-ink block">In Stock &amp; Available</span>
-                        <span className="text-[10px] text-muted">Customers can purchase this item</span>
+                        <span className="text-[10px] text-muted">
+                          {formInStock && (formStockQuantity === '' ? 0 : Number(formStockQuantity)) > 0
+                            ? `Live on storefront (${formStockQuantity} units)`
+                            : 'Disabled or 0 units available'}
+                        </span>
                       </div>
                     </label>
 
